@@ -21,12 +21,12 @@ CATEGORY_PRIORITIES: Dict[str, List[str]] = {
         "gemini-2.5-pro-preview",
     ],
     "text_flash": [
-        "gemini-3.1-flash",
+        "gemini-3-flash-preview",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
     ],
     "text_flash_lite": [
-        "gemini-3.1-flash-lite",
+        "gemini-3.1-flash-lite-preview",
         "gemini-2.5-flash-lite",
         "gemini-2.0-flash-lite",
     ],
