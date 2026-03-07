@@ -4,13 +4,13 @@ This file provides context to Claude Code when working with this repository.
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server that bridges Claude Code with Google Gemini AI. It enables AI collaboration by allowing Claude to access Gemini's capabilities including text generation with thinking mode, web search, RAG, image analysis, image generation, video generation, and text-to-speech.
+This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
 **Version:** 4.0.0
 **SDK:** google-genai >= 1.55.0 (Interactions API) + FastMCP + filelock
-**Architecture:** Modular package structure with SQLite persistence and conversation index
+**Architecture:** Modular package structure with SQLite persistence, dynamic model registry, and multi-provider routing
 
-## Architecture (v3.3.0)
+## Architecture (v4.0.0)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -20,7 +20,8 @@ omni-ai-mcp/
 ├── pyproject.toml            # Package configuration
 ├── app/
 │   ├── __init__.py          # Package init, exports main(), __version__
-│   ├── server.py            # FastMCP server (18 tools with @mcp.tool())
+│   ├── server.py            # FastMCP server (20 tools with @mcp.tool())
+│   ├── cli.py               # Setup wizard CLI (omni-ai-mcp-setup)
 │   │
 │   ├── core/                # Infrastructure & cross-cutting concerns
 │   │   ├── __init__.py      # Core exports
@@ -31,6 +32,8 @@ omni-ai-mcp/
 │   ├── services/            # External service integrations
 │   │   ├── __init__.py      # Service exports
 │   │   ├── gemini.py        # Gemini client wrapper, generate_with_fallback()
+│   │   ├── model_registry.py # Dynamic model discovery, cache, fallback (NEW v4.0)
+│   │   ├── openrouter.py    # OpenRouter client, 400+ models (NEW v4.0)
 │   │   └── persistence.py   # SQLite conversation storage + conversation index
 │   │
 │   ├── tools/               # MCP tool implementations (by domain)
@@ -38,6 +41,8 @@ omni-ai-mcp/
 │   │   ├── registry.py      # ToolRegistry with @tool decorator
 │   │   ├── text/            # Text/reasoning tools
 │   │   │   ├── ask_gemini.py    # Text generation with thinking + dual mode
+│   │   │   ├── ask_model.py     # Multi-provider routing: Gemini + OpenRouter (NEW v4.0)
+│   │   │   ├── models.py        # Live model catalog with deprecation warnings (NEW v4.0)
 │   │   │   ├── brainstorm.py    # Creative ideation (6 methodologies)
 │   │   │   ├── challenge.py     # Critical thinking / Devil's Advocate
 │   │   │   ├── code_review.py   # Code analysis
@@ -81,22 +86,26 @@ omni-ai-mcp/
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | Entry Point | `run.py` | Wrapper that imports and runs `app.main()` |
-| FastMCP Server | `app/server.py` | FastMCP server with 18 `@mcp.tool()` registrations |
+| FastMCP Server | `app/server.py` | FastMCP server with 20 `@mcp.tool()` registrations |
 | Config | `app/core/config.py` | Environment variables, defaults, version, model IDs |
 | Logging | `app/core/logging.py` | StructuredLogger with JSON support |
 | Security | `app/core/security.py` | Sandboxing, sanitization, safe writes, cross-platform file locking |
 | Tool Registry | `app/tools/registry.py` | @tool decorator, tool discovery |
 | Gemini Client | `app/services/gemini.py` | API wrapper with generate_with_fallback() |
+| Model Registry | `app/services/model_registry.py` | Dynamic discovery of 44+ models, cache TTL 1h, auto-fallback |
+| OpenRouter Client | `app/services/openrouter.py` | 400+ models via OpenRouter API |
 | Persistence | `app/services/persistence.py` | SQLite conversation storage + conversation index |
 
-### Available Tools (18)
+### Available Tools (20)
 
 | Tool | Description | Default Model |
 |------|-------------|---------------|
-| `ask_gemini` | Text generation with thinking + dual mode (local/cloud) | Gemini 3 Pro |
-| `gemini_code_review` | Code analysis | Gemini 3 Pro |
-| `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | Gemini 3 Pro |
-| `gemini_challenge` | Critical thinking / Devil's Advocate | Gemini 3 Pro |
+| `ask_model` | **NEW** Multi-provider routing: Gemini + 400+ via OpenRouter | auto-detected |
+| `gemini_list_models` | **NEW** Live model catalog with deprecation warnings | - |
+| `ask_gemini` | Text generation with thinking + dual mode (local/cloud) | Gemini 3.1 Pro |
+| `gemini_code_review` | Code analysis | Gemini 3.1 Pro |
+| `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | Gemini 3.1 Pro |
+| `gemini_challenge` | Critical thinking / Devil's Advocate | Gemini 3.1 Pro |
 | `gemini_web_search` | Google-grounded search | Gemini 2.5 Flash |
 | `gemini_deep_research` | Autonomous multi-step research (5-60 min) | Deep Research Agent |
 | `gemini_list_conversations` | **NEW** List conversations with title, mode, activity | - |
@@ -109,8 +118,8 @@ omni-ai-mcp/
 | `gemini_generate_image` | Image generation | Gemini 3 Pro Image |
 | `gemini_generate_video` | Video generation (sync polling) | Veo 3.1 |
 | `gemini_text_to_speech` | TTS with 30 voices | Gemini 2.5 Flash TTS |
-| `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | Gemini 3 Pro |
-| `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | Gemini 3 Pro |
+| `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | Gemini 3.1 Pro |
+| `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | Gemini 3.1 Pro |
 
 
 ## Development Commands
@@ -136,7 +145,7 @@ echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | GEMINI_API_KEY=your_key 
 
 ### Reinstall after changes
 ```bash
-cp -r app/ ~/.claude-mcp-servers/omni-ai-mcp/
+rsync -a app/ ~/.claude-mcp-servers/omni-ai-mcp/app/
 cp run.py ~/.claude-mcp-servers/omni-ai-mcp/
 # Then restart Claude Code
 ```
@@ -203,7 +212,7 @@ def my_tool(param: str, optional: str = "default") -> str:
     """
     try:
         response = generate_with_fallback(
-            model_id="gemini-3-pro-preview",
+            model_id=model_registry.resolve("text_pro"),  # dynamic resolution
             contents=param,
             config=types.GenerateContentConfig(temperature=0.5),
             operation="my_tool"
@@ -244,11 +253,13 @@ class MyToolInput(BaseModel):
 | `GEMINI_CONVERSATION_TTL_HOURS` | 3 | Thread expiration |
 | `GEMINI_CONVERSATION_MAX_TURNS` | 50 | Max turns per thread |
 | `GEMINI_DISABLED_TOOLS` | - | Comma-separated tool names to disable |
-| `GEMINI_MODEL_PRO` | gemini-3-pro-preview | Text model (Pro) |
-| `GEMINI_MODEL_FLASH` | gemini-2.5-flash | Text model (Flash) |
-| `GEMINI_MODEL_IMAGE_PRO` | gemini-3-pro-image-preview | Image model (Pro) |
-| `GEMINI_MODEL_VEO31` | veo-3.1-generate-preview | Video model (Veo 3.1) |
-| `GEMINI_MODEL_TTS_FLASH` | gemini-2.5-flash-preview-tts | TTS model (Flash) |
+| `GEMINI_MODEL_PRO` | gemini-3.1-pro-preview | Override Pro model |
+| `GEMINI_MODEL_FLASH` | gemini-2.5-flash | Override Flash model |
+| `GEMINI_MODEL_IMAGE_PRO` | gemini-3.1-pro-image-preview | Override Image model |
+| `GEMINI_MODEL_VEO31` | veo-3.1-generate-preview | Override Veo 3.1 model |
+| `GEMINI_MODEL_TTS_FLASH` | gemini-2.5-flash-preview-tts | Override TTS model |
+| `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
+| `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
 
 ## Security Features (v3.0.1)
 
