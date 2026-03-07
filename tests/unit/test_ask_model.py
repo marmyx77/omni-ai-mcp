@@ -192,6 +192,92 @@ class TestAskModelRouting:
 
         assert result == "Default Gemini"
 
+    def test_gemini_model_fallback_to_openrouter_when_no_gemini_key(self):
+        """No GEMINI_API_KEY → fall back to OpenRouter with google/ prefix."""
+        from app.tools.text.ask_model import ask_model
+
+        mock_or = MagicMock()
+        mock_or.is_available = True
+        mock_or.generate.return_value = "Google via OpenRouter"
+
+        with patch("app.tools.text.ask_model.is_available", return_value=False), \
+             patch("app.tools.text.ask_model.openrouter_client", mock_or):
+            result = ask_model(prompt="hello", model="gemini-2.5-flash")
+
+        mock_or.generate.assert_called_once()
+        call_kwargs = mock_or.generate.call_args
+        assert call_kwargs.kwargs["model"] == "google/gemini-2.5-flash"
+        assert result == "Google via OpenRouter"
+
+    def test_gemini_model_no_keys_returns_error(self):
+        """No GEMINI_API_KEY and no OPENROUTER_API_KEY → clear error."""
+        from app.tools.text.ask_model import ask_model
+
+        mock_or = MagicMock()
+        mock_or.is_available = False
+
+        with patch("app.tools.text.ask_model.is_available", return_value=False), \
+             patch("app.tools.text.ask_model.openrouter_client", mock_or):
+            result = ask_model(prompt="hello", model="gemini-2.5-flash")
+
+        assert "Error" in result
+        assert "API key" in result
+
+    def test_veo_model_no_openrouter_fallback(self):
+        """veo- models have no OpenRouter equivalent → error even with OpenRouter key."""
+        from app.tools.text.ask_model import ask_model
+
+        mock_or = MagicMock()
+        mock_or.is_available = True
+
+        with patch("app.tools.text.ask_model.is_available", return_value=False), \
+             patch("app.tools.text.ask_model.openrouter_client", mock_or):
+            result = ask_model(prompt="make video", model="veo-3.1-generate-preview")
+
+        mock_or.generate.assert_not_called()
+        assert "Error" in result
+        assert "GEMINI_API_KEY" in result
+
+    def test_openrouter_model_no_key_returns_error(self):
+        """Non-Gemini model + no OpenRouter key → clear error."""
+        from app.tools.text.ask_model import ask_model
+
+        mock_or = MagicMock()
+        mock_or.is_available = False
+
+        with patch("app.tools.text.ask_model.openrouter_client", mock_or):
+            result = ask_model(prompt="hello", model="openai/gpt-4o")
+
+        assert "OPENROUTER_API_KEY" in result
+
+
+class TestToOpenrouterGoogleId:
+    def test_gemini_prefix_maps_correctly(self):
+        from app.tools.text.ask_model import _to_openrouter_google_id
+        assert _to_openrouter_google_id("gemini-2.5-flash") == "google/gemini-2.5-flash"
+        assert _to_openrouter_google_id("gemini-3.1-pro-preview") == "google/gemini-3.1-pro-preview"
+
+    def test_models_prefix_stripped(self):
+        from app.tools.text.ask_model import _to_openrouter_google_id
+        assert _to_openrouter_google_id("models/gemini-2.5-flash") == "google/gemini-2.5-flash"
+
+    def test_veo_returns_none(self):
+        from app.tools.text.ask_model import _to_openrouter_google_id
+        assert _to_openrouter_google_id("veo-3.1-generate-preview") is None
+
+    def test_imagen_returns_none(self):
+        from app.tools.text.ask_model import _to_openrouter_google_id
+        assert _to_openrouter_google_id("imagen-3.0-generate-002") is None
+
+    def test_deep_research_returns_none(self):
+        from app.tools.text.ask_model import _to_openrouter_google_id
+        assert _to_openrouter_google_id("deep-research-pro-preview") is None
+
+    def test_short_names_return_none(self):
+        from app.tools.text.ask_model import _to_openrouter_google_id
+        assert _to_openrouter_google_id("pro") is None
+        assert _to_openrouter_google_id("flash") is None
+
 
 class TestListModels:
     def test_returns_string(self):

@@ -61,11 +61,33 @@ _GEMINI_PREFIXES = (
 # Short aliases that always map to Gemini
 _GEMINI_SHORT_NAMES = {"pro", "flash", "fast", "flash-lite"}
 
+# Gemini model prefixes that have OpenRouter equivalents (text-only)
+# veo-, imagen-, deep-research are Gemini-exclusive (no OpenRouter equivalent)
+_OPENROUTER_FALLBACK_PREFIXES = ("gemini-", "models/gemini-")
+_OPENROUTER_FALLBACK_SHORT_NAMES = {"pro", "flash", "fast", "flash-lite"}
+
 
 def _is_gemini_model(model_id: str) -> bool:
     """Return True if model ID looks like a Gemini/Google model."""
     lower = model_id.lower()
     return lower in _GEMINI_SHORT_NAMES or any(lower.startswith(p) for p in _GEMINI_PREFIXES)
+
+
+def _to_openrouter_google_id(model_id: str) -> Optional[str]:
+    """Convert a Gemini native model ID to OpenRouter's google/ format.
+
+    Returns None for models with no OpenRouter equivalent (veo, imagen, deep-research).
+    OpenRouter mirrors Gemini text models as 'google/<model-id>'.
+    """
+    lower = model_id.lower()
+    if lower in _OPENROUTER_FALLBACK_SHORT_NAMES:
+        # Short names need resolution first — caller must resolve before calling this
+        return None
+    if lower.startswith("models/gemini-"):
+        return f"google/{model_id[7:]}"  # strip "models/" prefix
+    if lower.startswith("gemini-"):
+        return f"google/{model_id}"
+    return None  # veo-, imagen-, deep-research → no OpenRouter equivalent
 
 
 def _resolve_gemini_model(model_id: str) -> str:
@@ -117,58 +139,77 @@ def ask_model(
     """
     from ...services.model_registry import model_registry
 
-    # Routing rules (in priority order):
-    # 1. Any Gemini model ID (explicit or short alias) → ALWAYS Gemini API directly
-    # 2. No model specified + provider != "openrouter" → Gemini default
-    # 3. provider="gemini" forced with a non-Gemini model → error
-    # 4. Everything else → OpenRouter
-    if model is not None and _is_gemini_model(model):
-        effective_provider = "gemini"
-    elif model is None and provider != "openrouter":
-        effective_provider = "gemini"
-    elif provider == "gemini":
+    gemini_model = model is not None and _is_gemini_model(model)
+    default_model = model is None
+
+    # --- provider="gemini" forced with non-Gemini model → error ---
+    if provider == "gemini" and not gemini_model and not default_model:
         return (
             f"Error: model '{model}' is not a Gemini model. "
             "Use provider='auto' or provider='openrouter' for non-Gemini models."
         )
-    else:
-        effective_provider = "openrouter"
 
-    # --- Gemini path ---
-    if effective_provider == "gemini":
-        if not is_available():
+    # --- Routing decision ---
+    # Gemini models: prefer native API, fall back to OpenRouter if no Gemini key
+    # OpenRouter models: require OpenRouter key
+    if gemini_model or default_model:
+        if is_available() and (gemini_model or provider != "openrouter"):
+            # ✅ Gemini key available → native Gemini API
+            resolved = _resolve_gemini_model(model or "pro")
+            try:
+                gen_config = types.GenerateContentConfig(temperature=temperature)
+                if system_prompt:
+                    gen_config = types.GenerateContentConfig(
+                        temperature=temperature,
+                        system_instruction=system_prompt,
+                    )
+                response = generate_with_fallback(
+                    model_id=resolved,
+                    contents=prompt,
+                    config=gen_config,
+                    operation="ask_model",
+                )
+                return response.text
+            except Exception as e:
+                return f"Error: {e}"
+
+        elif openrouter_client.is_available and provider != "gemini":
+            # ✅ No Gemini key (or provider=openrouter forced) → OpenRouter fallback
+            # Resolve short names first, then convert to OpenRouter google/ format
+            resolved = _resolve_gemini_model(model or "pro")
+            or_model = _to_openrouter_google_id(resolved)
+            if or_model is None:
+                return (
+                    f"Error: model '{resolved}' requires GEMINI_API_KEY "
+                    "(video/image/deep-research models are not available via OpenRouter)."
+                )
+            return openrouter_client.generate(
+                prompt=prompt,
+                model=or_model,
+                system_prompt=system_prompt,
+                temperature=temperature,
+            )
+
+        else:
+            # ❌ No keys available
+            if not is_available() and not openrouter_client.is_available:
+                return (
+                    "Error: No API key configured.\n"
+                    "Set GEMINI_API_KEY for Gemini models, or "
+                    "OPENROUTER_API_KEY to access Google models via OpenRouter."
+                )
             return f"Error: {get_error()}"
 
-        resolved = _resolve_gemini_model(model or "pro")
-
-        try:
-            gen_config = types.GenerateContentConfig(temperature=temperature)
-            if system_prompt:
-                gen_config = types.GenerateContentConfig(
-                    temperature=temperature,
-                    system_instruction=system_prompt,
-                )
-
-            response = generate_with_fallback(
-                model_id=resolved,
-                contents=prompt,
-                config=gen_config,
-                operation="ask_model",
-            )
-            return response.text
-        except Exception as e:
-            return f"Error: {e}"
-
-    # --- OpenRouter path ---
+    # --- OpenRouter models (non-Gemini) ---
     if not openrouter_client.is_available:
         return (
-            "Error: OpenRouter not configured.\n"
+            f"Error: OPENROUTER_API_KEY required to use model '{model}'.\n"
             "Set OPENROUTER_API_KEY to access 400+ models via OpenRouter."
         )
 
     return openrouter_client.generate(
         prompt=prompt,
-        model=model or openrouter_client._default_model,
+        model=model,
         system_prompt=system_prompt,
         temperature=temperature,
     )
