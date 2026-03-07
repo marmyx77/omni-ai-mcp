@@ -51,9 +51,9 @@
    ```
 3. **Use Claude Code's `-e` flag** when registering:
    ```bash
-   claude mcp add gemini-mcp-pro --scope user \
+   claude mcp add omni-ai-mcp --scope user \
      -e GEMINI_API_KEY=YOUR_KEY \
-     -- python3 ~/.claude-mcp-servers/gemini-mcp-pro/run.py
+     -- python3 ~/.claude-mcp-servers/omni-ai-mcp/run.py
    ```
 
 ### What NOT to Do
@@ -223,7 +223,7 @@ When using this MCP server, the following data is sent to Google's Gemini API:
 - Refer to [Google AI's privacy policy](https://ai.google.dev/gemini-api/terms)
 - File Search stores persist on Google's servers until deleted
 - Generated images/videos are temporarily stored during generation
-- Conversation history stored locally in SQLite (`~/.gemini-mcp-pro/conversations.db`)
+- Conversation history stored locally in SQLite (`~/.omni-ai-mcp/conversations.db`)
 
 ### Sensitive Data Guidelines
 

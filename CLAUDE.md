@@ -6,7 +6,7 @@ This file provides context to Claude Code when working with this repository.
 
 This is an MCP (Model Context Protocol) server that bridges Claude Code with Google Gemini AI. It enables AI collaboration by allowing Claude to access Gemini's capabilities including text generation with thinking mode, web search, RAG, image analysis, image generation, video generation, and text-to-speech.
 
-**Version:** 3.3.0
+**Version:** 4.0.0
 **SDK:** google-genai >= 1.55.0 (Interactions API) + FastMCP + filelock
 **Architecture:** Modular package structure with SQLite persistence and conversation index
 
@@ -15,7 +15,7 @@ This is an MCP (Model Context Protocol) server that bridges Claude Code with Goo
 **Production-grade MCP server** with FastMCP SDK:
 
 ```
-gemini-mcp-pro/
+omni-ai-mcp/
 ├── run.py                    # Entry point wrapper
 ├── pyproject.toml            # Package configuration
 ├── app/
@@ -136,8 +136,8 @@ echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | GEMINI_API_KEY=your_key 
 
 ### Reinstall after changes
 ```bash
-cp -r app/ ~/.claude-mcp-servers/gemini-mcp-pro/
-cp run.py ~/.claude-mcp-servers/gemini-mcp-pro/
+cp -r app/ ~/.claude-mcp-servers/omni-ai-mcp/
+cp run.py ~/.claude-mcp-servers/omni-ai-mcp/
 # Then restart Claude Code
 ```
 
@@ -239,7 +239,7 @@ class MyToolInput(BaseModel):
 | `GEMINI_SANDBOX_ENABLED` | true | Enable path sandboxing |
 | `GEMINI_MAX_FILE_SIZE` | 102400 | Max file size in bytes (100KB) |
 | `GEMINI_ACTIVITY_LOG` | true | Enable activity logging |
-| `GEMINI_LOG_DIR` | ~/.gemini-mcp-pro | Log directory |
+| `GEMINI_LOG_DIR` | ~/.omni-ai-mcp | Log directory |
 | `GEMINI_LOG_FORMAT` | text | "json" or "text" |
 | `GEMINI_CONVERSATION_TTL_HOURS` | 3 | Thread expiration |
 | `GEMINI_CONVERSATION_MAX_TURNS` | 50 | Max turns per thread |
@@ -423,7 +423,7 @@ thread_id = f"int_{interaction.id}"  # Cloud IDs prefixed with int_
 
 | Feature | Local (SQLite) | Cloud (Interactions API) |
 |---------|---------------|--------------------------|
-| Storage | `~/.gemini-mcp-pro/conversations.db` | Google servers |
+| Storage | `~/.omni-ai-mcp/conversations.db` | Google servers |
 | Retention | Configurable TTL (default 3h) | 55 days (paid tier) |
 | Cross-device | No | Yes |
 | Speed | Faster | Slightly slower |

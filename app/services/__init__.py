@@ -22,6 +22,12 @@ from .persistence import (
     CONVERSATION_MAX_TURNS,
 )
 
+# Dynamic model registry (v4.0.0)
+from .model_registry import model_registry, ModelRegistry
+
+# OpenRouter multi-provider client (v4.0.0, optional)
+from .openrouter import openrouter_client, OpenRouterClient
+
 
 __all__ = [
     # Gemini client
@@ -41,4 +47,10 @@ __all__ = [
     "ConversationTurn",
     "CONVERSATION_TTL_HOURS",
     "CONVERSATION_MAX_TURNS",
+    # Model registry
+    "model_registry",
+    "ModelRegistry",
+    # OpenRouter
+    "openrouter_client",
+    "OpenRouterClient",
 ]

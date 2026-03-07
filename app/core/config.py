@@ -1,5 +1,5 @@
 """
-Configuration management for gemini-mcp-pro.
+Configuration management for omni-ai-mcp.
 Centralizes all environment variables and settings.
 """
 
@@ -11,13 +11,13 @@ from typing import List, Optional
 @dataclass
 class Config:
     """
-    Central configuration for gemini-mcp-pro.
+    Central configuration for omni-ai-mcp.
 
     All settings are loaded from environment variables with sensible defaults.
     """
 
     # Version
-    version: str = "3.3.0"
+    version: str = "4.0.0"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
@@ -25,14 +25,14 @@ class Config:
     # Model Versions (can be overridden via environment variables)
     # Text Generation Models
     model_pro: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_PRO", "gemini-3-pro-preview")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_PRO", "gemini-3.1-pro-preview")
     )
     model_flash: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH", "gemini-2.5-flash")
     )
     # Image Models
     model_image_pro: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_PRO", "gemini-3-pro-image-preview")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_PRO", "gemini-3.1-pro-image-preview")
     )
     model_image_flash: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_FLASH", "gemini-2.5-flash-image")
@@ -44,12 +44,33 @@ class Config:
     model_veo31_fast: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31_FAST", "veo-3.1-fast-generate-preview")
     )
+    model_veo3: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO3", "veo-3.0-generate-001")
+    )
+    model_veo3_fast: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO3_FAST", "veo-3.0-fast-generate-001")
+    )
+    model_veo2: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO2", "veo-2.0-generate-001")
+    )
     # TTS Models
     model_tts_flash: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_FLASH", "gemini-2.5-flash-preview-tts")
     )
     model_tts_pro: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_PRO", "gemini-2.5-pro-preview-tts")
+    )
+    # Research Agent
+    model_deep_research: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_DEEP_RESEARCH", "deep-research-pro-preview")
+    )
+
+    # OpenRouter (optional multi-provider support)
+    openrouter_api_key: str = field(
+        default_factory=lambda: os.environ.get("OPENROUTER_API_KEY", "")
+    )
+    openrouter_default_model: str = field(
+        default_factory=lambda: os.environ.get("OPENROUTER_DEFAULT_MODEL", "openai/gpt-4o")
     )
 
     # Conversation Memory
@@ -76,7 +97,7 @@ class Config:
         default_factory=lambda: os.environ.get("GEMINI_ACTIVITY_LOG", "true").lower() == "true"
     )
     log_dir: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_LOG_DIR", os.path.expanduser("~/.gemini-mcp-pro"))
+        default_factory=lambda: os.environ.get("GEMINI_LOG_DIR", os.path.expanduser("~/.omni-ai-mcp"))
     )
     log_max_bytes: int = field(
         default_factory=lambda: int(os.environ.get("GEMINI_LOG_MAX_BYTES", str(10 * 1024 * 1024)))

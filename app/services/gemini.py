@@ -26,9 +26,9 @@ IMAGE_MODELS = {
 VIDEO_MODELS = {
     "veo31": config.model_veo31,               # Best quality, 8s, 720p/1080p, audio
     "veo31_fast": config.model_veo31_fast,     # Faster, optimized for speed
-    "veo3": "veo-3.0-generate-001",            # Stable, 8s with audio
-    "veo3_fast": "veo-3.0-fast-generate-001",  # Fast stable version
-    "veo2": "veo-2.0-generate-001",            # Legacy, no audio
+    "veo3": config.model_veo3,                 # Stable, 8s with audio
+    "veo3_fast": config.model_veo3_fast,       # Fast stable version
+    "veo2": config.model_veo2,                 # Legacy, no audio
 }
 
 TTS_MODELS = {

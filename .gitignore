@@ -20,7 +20,11 @@ Thumbs.db
 
 # Project specific
 *.log
-.claude/
+# Keep Claude Code user settings private, but track shareable plugin files
+.claude/*.json
+.claude/plans/
+.claude/todos/
+.claude/cache/
 test/
 
 # Test files (generated during development)

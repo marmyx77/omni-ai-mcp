@@ -1,4 +1,4 @@
-# Contributing to gemini-mcp-pro
+# Contributing to omni-ai-mcp
 
 Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
 
@@ -13,7 +13,7 @@ Be respectful and constructive. We're all here to build something useful togethe
 The project uses a **modular architecture** with FastMCP SDK:
 
 ```
-gemini-mcp-pro/
+omni-ai-mcp/
 ├── run.py                    # Entry point
 ├── server.py                 # DEPRECATED: Backward compatibility shim
 ├── pyproject.toml            # Package configuration

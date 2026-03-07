@@ -5,7 +5,7 @@ Query documents using RAG with File Search Stores.
 """
 
 from ...tools.registry import tool
-from ...services import types, generate_with_fallback
+from ...services import types, generate_with_fallback, MODELS
 from .file_store import resolve_store_name
 
 
@@ -34,7 +34,7 @@ def file_search(question: str, store_name: str) -> str:
         return f"Error: {e}"
 
     response = generate_with_fallback(
-        model_id="gemini-2.5-flash",
+        model_id=MODELS["flash"],
         contents=question,
         config=types.GenerateContentConfig(
             tools=[

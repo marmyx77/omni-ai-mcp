@@ -1,9 +1,9 @@
 """
-FastMCP Server Tests for v3.0.0
+FastMCP Server Tests for v4.0.0
 
 Tests:
 - Server initialization
-- Tool registration
+- Tool registration (20 tools)
 - MCP protocol compliance
 """
 
@@ -26,7 +26,7 @@ class TestFastMCPServerInit:
     def test_server_has_correct_name(self):
         """Server has correct name."""
         from app.server import mcp
-        assert mcp.name == "gemini-mcp-pro"
+        assert mcp.name == "omni-ai-mcp"
 
     def test_server_has_main_function(self):
         """Server has main() entry point."""
@@ -37,11 +37,11 @@ class TestFastMCPServerInit:
 class TestToolRegistration:
     """Tool registration tests."""
 
-    def test_all_15_tools_registered(self):
-        """All 15 tools are registered."""
+    def test_all_20_tools_registered(self):
+        """All 20 tools are registered (v4.0.0)."""
         from app.server import mcp
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 15
+        assert len(tools) == 20
 
     def test_analysis_tools_registered(self):
         """Analysis tools are registered."""
@@ -77,6 +77,26 @@ class TestToolRegistration:
         assert "gemini_code_review" in tools
         assert "gemini_brainstorm" in tools
         assert "gemini_challenge" in tools
+
+    def test_v4_tools_registered(self):
+        """v4.0.0 tools are registered."""
+        from app.server import mcp
+        tools = mcp._tool_manager._tools
+        assert "gemini_list_models" in tools
+        assert "ask_model" in tools  # Must be ask_model, not ask_model_tool
+
+    def test_conversation_tools_registered(self):
+        """Conversation management tools are registered."""
+        from app.server import mcp
+        tools = mcp._tool_manager._tools
+        assert "gemini_list_conversations" in tools
+        assert "gemini_delete_conversation" in tools
+
+    def test_deep_research_registered(self):
+        """Deep research tool is registered."""
+        from app.server import mcp
+        tools = mcp._tool_manager._tools
+        assert "gemini_deep_research" in tools
 
     def test_tool_names_are_strings(self):
         """All tool names are strings."""

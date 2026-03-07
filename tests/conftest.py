@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for gemini-mcp-pro tests.
+Pytest configuration and fixtures for omni-ai-mcp tests.
 
 v2.6.0 Test Suite Foundation
 """

@@ -10,11 +10,11 @@ from typing import Optional
 
 from ...tools.registry import tool
 from ...services import client, is_available, get_error
-from ...core import log_progress
+from ...core import config, log_progress
 
 
-# Deep Research agent configuration
-DEEP_RESEARCH_AGENT = "deep-research-pro-preview-12-2025"
+# Deep Research agent configuration (from config, overridable via GEMINI_MODEL_DEEP_RESEARCH)
+DEEP_RESEARCH_AGENT = config.model_deep_research
 
 # Polling configuration
 POLL_INTERVAL_SECONDS = 15  # Check every 15 seconds

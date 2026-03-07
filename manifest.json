@@ -1,0 +1,54 @@
+{
+  "manifest_version": "1",
+  "name": "omni-ai-mcp",
+  "version": "4.0.0",
+  "description": "Bridge Claude with Google Gemini + OpenRouter: text, code, image, video, TTS, RAG, Deep Research, and 400+ models",
+  "author": "Marco Armellino",
+  "license": "MIT",
+  "homepage": "https://github.com/marcoarmellino/omni-ai-mcp",
+  "server": {
+    "type": "python",
+    "entry_point": "app.main",
+    "requires_python": ">=3.9"
+  },
+  "environment": {
+    "GEMINI_API_KEY": {
+      "required": true,
+      "description": "Google Gemini API key — get one at https://ai.google.dev"
+    },
+    "OPENROUTER_API_KEY": {
+      "required": false,
+      "description": "OpenRouter API key for 400+ additional models (optional) — get one at https://openrouter.ai"
+    },
+    "GEMINI_MODEL_PRO": {
+      "required": false,
+      "description": "Override default Pro model (default: gemini-3.1-pro-preview)"
+    },
+    "GEMINI_MODEL_FLASH": {
+      "required": false,
+      "description": "Override default Flash model (default: gemini-2.5-flash)"
+    }
+  },
+  "tools": [
+    "ask_gemini",
+    "ask_model",
+    "gemini_list_models",
+    "gemini_code_review",
+    "gemini_brainstorm",
+    "gemini_challenge",
+    "gemini_web_search",
+    "gemini_deep_research",
+    "gemini_list_conversations",
+    "gemini_delete_conversation",
+    "gemini_file_search",
+    "gemini_create_file_store",
+    "gemini_upload_file",
+    "gemini_list_file_stores",
+    "gemini_analyze_image",
+    "gemini_generate_image",
+    "gemini_generate_video",
+    "gemini_text_to_speech",
+    "gemini_analyze_codebase",
+    "gemini_generate_code"
+  ]
+}

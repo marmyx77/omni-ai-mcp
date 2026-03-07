@@ -1,5 +1,5 @@
 """
-Structured logging for gemini-mcp-pro.
+Structured logging for omni-ai-mcp.
 Supports both text and JSON formats for container observability.
 """
 
@@ -43,7 +43,7 @@ class StructuredLogger:
     {"timestamp": "...", "level": "INFO", "tool": "ask_gemini", ...}
     """
 
-    def __init__(self, name: str = "gemini-mcp"):
+    def __init__(self, name: str = "omni-ai-mcp"):
         self.name = name
 
     def _emit(self, record: LogRecord):
@@ -247,4 +247,4 @@ def log_progress(message: str, stage: str = "progress"):
     if config.log_format == "json":
         structured_logger.info(message, status=stage)
     else:
-        print(f"[gemini-mcp-pro] {message}", file=sys.stderr, flush=True)
+        print(f"[omni-ai-mcp] {message}", file=sys.stderr, flush=True)

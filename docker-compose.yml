@@ -1,10 +1,10 @@
-# docker-compose.yml for gemini-mcp-pro
+# docker-compose.yml for omni-ai-mcp
 # v2.7.0 - Production deployment with security hardening
 
 services:
   gemini-mcp:
     build: .
-    container_name: gemini-mcp-pro
+    container_name: omni-ai-mcp
     restart: unless-stopped
 
     environment:

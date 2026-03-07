@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gemini-mcp-pro v3.0.0
+omni-ai-mcp v3.0.0
 Production MCP server for Google Gemini AI.
 
 Usage:

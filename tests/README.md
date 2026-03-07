@@ -1,4 +1,4 @@
-# Test Suite - gemini-mcp-pro
+# Test Suite - omni-ai-mcp
 
 ## Structure
 

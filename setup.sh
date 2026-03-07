@@ -1,6 +1,6 @@
 #!/bin/bash
-# gemini-mcp-pro Setup Script v3.0.0
-# Installs and configures the Gemini MCP server for Claude Code
+# omni-ai-mcp Setup Script v4.0.0
+# Installs and configures the omni-ai-mcp server for Claude Code
 
 set -e
 
@@ -12,19 +12,22 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║  gemini-mcp-pro Setup v3.0.0               ║${NC}"
-echo -e "${BLUE}║  FastMCP + Gemini AI Integration           ║${NC}"
+echo -e "${BLUE}║  omni-ai-mcp Setup v4.0.0               ║${NC}"
+echo -e "${BLUE}║  Gemini + OpenRouter — 20 AI Tools         ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
 echo ""
 
 # Check if API key was provided
 API_KEY="$1"
+OPENROUTER_KEY="${2:-}"  # Optional second argument
+
 if [ -z "$API_KEY" ]; then
     echo -e "${RED}Error: Please provide your Gemini API key${NC}"
     echo ""
-    echo "Usage: ./setup.sh YOUR_GEMINI_API_KEY"
+    echo "Usage: ./setup.sh YOUR_GEMINI_API_KEY [OPENROUTER_API_KEY]"
     echo ""
-    echo "Get a free API key at: https://aistudio.google.com/apikey"
+    echo "  Gemini key (required): https://aistudio.google.com/apikey"
+    echo "  OpenRouter key (optional, for 400+ models): https://openrouter.ai"
     exit 1
 fi
 
@@ -63,7 +66,7 @@ fi
 echo -e "  ${GREEN}✓${NC} Claude Code CLI"
 
 # Create MCP server directory
-INSTALL_DIR="$HOME/.claude-mcp-servers/gemini-mcp-pro"
+INSTALL_DIR="$HOME/.claude-mcp-servers/omni-ai-mcp"
 echo ""
 echo "Installing server..."
 mkdir -p "$INSTALL_DIR"
@@ -80,9 +83,9 @@ echo "Installing dependencies..."
 
 # Try different pip installation methods
 install_deps() {
-    pip3 install --quiet --user 'mcp[cli]>=1.0.0' 'google-genai>=1.0.0' 'pydantic>=2.0.0' 2>/dev/null || \
-    pip3 install --quiet --break-system-packages 'mcp[cli]>=1.0.0' 'google-genai>=1.0.0' 'pydantic>=2.0.0' 2>/dev/null || \
-    pip3 install --quiet 'mcp[cli]>=1.0.0' 'google-genai>=1.0.0' 'pydantic>=2.0.0'
+    pip3 install --quiet --user 'mcp[cli]>=1.0.0' 'google-genai>=1.55.0' 'pydantic>=2.0.0' 'defusedxml>=0.7.1' 'filelock>=3.0.0' 2>/dev/null || \
+    pip3 install --quiet --break-system-packages 'mcp[cli]>=1.0.0' 'google-genai>=1.55.0' 'pydantic>=2.0.0' 'defusedxml>=0.7.1' 'filelock>=3.0.0' 2>/dev/null || \
+    pip3 install --quiet 'mcp[cli]>=1.0.0' 'google-genai>=1.55.0' 'pydantic>=2.0.0' 'defusedxml>=0.7.1' 'filelock>=3.0.0'
 }
 
 if install_deps; then
@@ -99,11 +102,20 @@ fi
 # Remove any existing MCP configuration
 echo ""
 echo "Configuring Claude Code..."
-claude mcp remove gemini-mcp-pro 2>/dev/null || true
+claude mcp remove omni-ai-mcp 2>/dev/null || true
 
-# Add MCP server with environment variable for API key
-claude mcp add gemini-mcp-pro --scope user -e GEMINI_API_KEY="$API_KEY" \
-    -- python3 "$INSTALL_DIR/run.py"
+# Add MCP server with environment variables
+if [ -n "$OPENROUTER_KEY" ]; then
+    claude mcp add omni-ai-mcp --scope user \
+        -e GEMINI_API_KEY="$API_KEY" \
+        -e OPENROUTER_API_KEY="$OPENROUTER_KEY" \
+        -- python3 "$INSTALL_DIR/run.py"
+    echo -e "  ${GREEN}✓${NC} OpenRouter integration enabled (400+ models)"
+else
+    claude mcp add omni-ai-mcp --scope user \
+        -e GEMINI_API_KEY="$API_KEY" \
+        -- python3 "$INSTALL_DIR/run.py"
+fi
 
 echo -e "  ${GREEN}✓${NC} MCP server registered"
 
@@ -116,24 +128,11 @@ echo "Next steps:"
 echo "  1. Restart Claude Code (exit and reopen)"
 echo "  2. Verify with: claude mcp list"
 echo ""
-echo "Available tools (15 MCP tools via FastMCP SDK):"
+echo "Available tools (20 MCP tools via FastMCP SDK):"
 echo ""
-echo "  ${BLUE}Analysis${NC} (Gemini's 1M+ context advantage)"
-echo "    • gemini_analyze_codebase  - Large codebase analysis"
-echo "    • gemini_analyze_image     - Vision / OCR"
-echo ""
-echo "  ${BLUE}Search & RAG${NC} (Google grounding)"
-echo "    • gemini_web_search        - Web search with citations"
-echo "    • gemini_file_search       - RAG document queries"
-echo "    • gemini_create_file_store - Create RAG stores"
-echo "    • gemini_upload_file       - Upload to RAG"
-echo "    • gemini_list_file_stores  - List RAG stores"
-echo ""
-echo "  ${BLUE}Generation${NC} (Unique capabilities)"
-echo "    • gemini_generate_image    - Imagen (up to 4K)"
-echo "    • gemini_generate_video    - Veo 3.1 with audio"
-echo "    • gemini_text_to_speech    - 30 voices, multi-speaker"
-echo "    • gemini_generate_code     - Structured code generation"
+echo "  ${BLUE}Multi-Provider${NC} (NEW in v4.0.0)"
+echo "    • ask_model                - Gemini + 400+ models via OpenRouter"
+echo "    • gemini_list_models       - Discover available models"
 echo ""
 echo "  ${BLUE}Text & Reasoning${NC}"
 echo "    • ask_gemini               - Text generation with thinking"
@@ -141,5 +140,27 @@ echo "    • gemini_code_review       - Code analysis"
 echo "    • gemini_brainstorm        - 6 methodologies"
 echo "    • gemini_challenge         - Devil's advocate critique"
 echo ""
-echo "Documentation: https://github.com/marmyx77/gemini-mcp-pro"
+echo "  ${BLUE}Research${NC}"
+echo "    • gemini_web_search        - Web search with citations"
+echo "    • gemini_deep_research     - Autonomous 5-60 min research"
+echo ""
+echo "  ${BLUE}Analysis${NC} (Gemini's 1M+ context advantage)"
+echo "    • gemini_analyze_codebase  - Large codebase analysis"
+echo "    • gemini_analyze_image     - Vision / OCR"
+echo "    • gemini_generate_code     - Structured code generation"
+echo "    • gemini_code_review       - Security & performance review"
+echo ""
+echo "  ${BLUE}Generation${NC} (Unique Gemini capabilities)"
+echo "    • gemini_generate_image    - Imagen (up to 4K)"
+echo "    • gemini_generate_video    - Veo 3.1 with native audio"
+echo "    • gemini_text_to_speech    - 30 voices, multi-speaker"
+echo ""
+echo "  ${BLUE}RAG & Memory${NC}"
+echo "    • gemini_file_search       - RAG document queries"
+echo "    • gemini_create_file_store - Create RAG stores"
+echo "    • gemini_upload_file       - Upload to RAG"
+echo "    • gemini_list_file_stores  - List RAG stores"
+echo "    • gemini_list_conversations- View conversation history"
+echo ""
+echo "Documentation: https://github.com/marcoarmellino/omni-ai-mcp"
 echo ""

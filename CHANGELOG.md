@@ -258,7 +258,7 @@ See [CLAUDE.md](CLAUDE.md#roadmap) for the development roadmap.
   - `app/server.py` as the new FastMCP-based server
 
 - **SQLite Persistence**: Conversation history survives server restarts
-  - `~/.gemini-mcp-pro/conversations.db` SQLite database
+  - `~/.omni-ai-mcp/conversations.db` SQLite database
   - Thread-safe operations with WAL mode and `threading.Lock`
   - Automatic TTL-based cleanup (configurable via `GEMINI_CONVERSATION_TTL_HOURS`)
   - `PersistentConversationMemory` class in `app/services/persistence.py`
@@ -308,14 +308,14 @@ See [CLAUDE.md](CLAUDE.md#roadmap) for the development roadmap.
 
 # Option 2: Manual update
 pip install 'mcp[cli]>=1.0.0'
-rm ~/.claude-mcp-servers/gemini-mcp-pro/server.py
-cp -r app/ ~/.claude-mcp-servers/gemini-mcp-pro/
-cp run.py pyproject.toml ~/.claude-mcp-servers/gemini-mcp-pro/
+rm ~/.claude-mcp-servers/omni-ai-mcp/server.py
+cp -r app/ ~/.claude-mcp-servers/omni-ai-mcp/
+cp run.py pyproject.toml ~/.claude-mcp-servers/omni-ai-mcp/
 
 # Update MCP registration
-claude mcp remove gemini-mcp-pro
-claude mcp add gemini-mcp-pro --scope user -e GEMINI_API_KEY=YOUR_KEY \
-  -- python3 ~/.claude-mcp-servers/gemini-mcp-pro/run.py
+claude mcp remove omni-ai-mcp
+claude mcp add omni-ai-mcp --scope user -e GEMINI_API_KEY=YOUR_KEY \
+  -- python3 ~/.claude-mcp-servers/omni-ai-mcp/run.py
 ```
 
 ---
@@ -430,7 +430,7 @@ claude mcp add gemini-mcp-pro --scope user -e GEMINI_API_KEY=YOUR_KEY \
   - Use before implementing to catch issues early
 
 - **Activity Logging**: Professional logging system for tool usage monitoring
-  - Separate log file at `~/.gemini-mcp-pro/activity.log`
+  - Separate log file at `~/.omni-ai-mcp/activity.log`
   - Rotating file handler (10MB max, 5 backups) - never saturates disk
   - Logs: tool name, status (start/success/error), duration, details
   - Privacy-aware: truncates large values, no sensitive data logged
@@ -438,7 +438,7 @@ claude mcp add gemini-mcp-pro --scope user -e GEMINI_API_KEY=YOUR_KEY \
 
 ### Configuration (New Environment Variables)
 - `GEMINI_ACTIVITY_LOG`: Enable/disable activity logging (default: true)
-- `GEMINI_LOG_DIR`: Log directory path (default: ~/.gemini-mcp-pro)
+- `GEMINI_LOG_DIR`: Log directory path (default: ~/.omni-ai-mcp)
 - `GEMINI_LOG_MAX_BYTES`: Max log file size (default: 10MB)
 - `GEMINI_LOG_BACKUP_COUNT`: Number of backup files (default: 5)
 

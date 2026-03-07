@@ -28,7 +28,7 @@ Successfully uploaded 'README.md'
 
 --- gemini_file_search ---
 Parameters:
-- question: "What tools does gemini-mcp-pro provide?"
+- question: "What tools does omni-ai-mcp provide?"
 - store_name: fileSearchStores/v301teststore-2ugwj3ict4ue
 
 Result: SUCCESS

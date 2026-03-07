@@ -1,0 +1,40 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # Required for Trusted Publishing
+      contents: write  # Required for uploading release assets
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Build distribution
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Build .mcpb bundle
+        run: bash scripts/build_mcpb.sh
+        continue-on-error: true  # Don't fail release if mcpb tools not available
+
+      - name: Upload .mcpb as release asset
+        uses: softprops/action-gh-release@v2
+        if: hashFiles('omni-ai-mcp.mcpb') != ''
+        with:
+          files: omni-ai-mcp.mcpb

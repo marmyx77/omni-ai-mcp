@@ -30,7 +30,7 @@ DB_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR  # 0o600
 
 
 # Database location
-DB_DIR = Path.home() / ".gemini-mcp-pro"
+DB_DIR = Path.home() / ".omni-ai-mcp"
 DB_PATH = DB_DIR / "conversations.db"
 
 # Configuration constants (exported for backward compatibility)

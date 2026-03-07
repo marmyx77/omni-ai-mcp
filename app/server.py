@@ -1,5 +1,5 @@
 """
-gemini-mcp-pro v3.3.0
+omni-ai-mcp v4.0.0
 FastMCP-based MCP server for Google Gemini AI integration.
 
 This server provides access to Gemini's unique capabilities:
@@ -37,7 +37,7 @@ from .core.security import secure_read_file, validate_path
 
 # Initialize FastMCP server
 mcp = FastMCP(
-    name="gemini-mcp-pro",
+    name="omni-ai-mcp",
 )
 
 
@@ -68,6 +68,8 @@ from .tools.text.code_review import code_review
 from .tools.text.brainstorm import brainstorm
 from .tools.text.challenge import challenge
 from .tools.text.conversations import list_conversations, delete_conversation
+from .tools.text.models import list_models
+from .tools.text.ask_model import ask_model
 
 
 # =============================================================================
@@ -470,6 +472,63 @@ def gemini_delete_conversation(
 
 
 # =============================================================================
+# TOOL: List Models (v4.0.0)
+# =============================================================================
+
+@mcp.tool()
+def gemini_list_models(include_openrouter: bool = True) -> str:
+    """
+    List all available AI models by category.
+    Shows Gemini models (discovered via API) and OpenRouter models if configured.
+    Identifies deprecated models in your config.
+
+    Args:
+        include_openrouter: Include OpenRouter models (requires OPENROUTER_API_KEY, default: true)
+
+    Returns:
+        Report of available models per category with deprecation warnings
+    """
+    return list_models(include_openrouter=include_openrouter)
+
+
+# =============================================================================
+# TOOL: Ask Model — multi-provider (v4.0.0)
+# =============================================================================
+
+@mcp.tool(name="ask_model")
+def ask_model_tool(
+    prompt: str,
+    model: Optional[str] = None,
+    provider: str = "auto",
+    system_prompt: Optional[str] = None,
+    temperature: float = 0.7,
+) -> str:
+    """
+    Ask any AI model — Gemini or 400+ models via OpenRouter.
+    Auto-detects provider from model name; use provider='openrouter' to force OpenRouter.
+    Requires OPENROUTER_API_KEY for non-Gemini models.
+    Use gemini_list_models to discover available model IDs.
+
+    Args:
+        prompt: The question or prompt to send
+        model: Model ID (e.g. 'gemini-3.1-pro-preview', 'openai/gpt-4o', 'meta-llama/llama-3.3-70b')
+        provider: 'auto' (default), 'gemini', or 'openrouter'
+        system_prompt: Optional system message / persona
+        temperature: Sampling temperature 0.0-1.0 (default: 0.7)
+
+    Returns:
+        Model response text
+    """
+    return ask_model(
+        prompt=prompt,
+        model=model,
+        provider=provider,
+        system_prompt=system_prompt,
+        temperature=temperature,
+    )
+
+
+# =============================================================================
 # TOOL: Code Review
 # =============================================================================
 
@@ -630,8 +689,8 @@ def main():
         print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)
 
-    structured_logger.info(f"Starting gemini-mcp-pro v{config.version}")
-    structured_logger.info(f"Tools available: 18 (including conversation management)")
+    structured_logger.info(f"Starting omni-ai-mcp v{config.version}")
+    structured_logger.info(f"Tools available: 20 (including model registry and multi-provider)")
 
     # Run the FastMCP server
     mcp.run()
