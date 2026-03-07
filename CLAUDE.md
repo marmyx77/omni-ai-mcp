@@ -6,11 +6,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.0.0
+**Version:** 4.0.1
 **SDK:** google-genai >= 1.55.0 (Interactions API) + FastMCP + filelock
 **Architecture:** Modular package structure with SQLite persistence, dynamic model registry, and multi-provider routing
 
-## Architecture (v4.0.0)
+See also: [CHANGELOG.md](CHANGELOG.md) for release notes, [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for future plans.
+
+## Architecture (v4.0.1)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -75,7 +77,7 @@ omni-ai-mcp/
 │   └── middleware/          # Request processing
 │       └── __init__.py
 │
-└── tests/                   # Test suite (118+ tests)
+└── tests/                   # Test suite (174+ tests)
     ├── conftest.py          # Pytest fixtures
     ├── unit/                # Unit tests
     └── integration/         # Integration tests
@@ -261,7 +263,7 @@ class MyToolInput(BaseModel):
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
 | `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
 
-## Security Features (v3.0.1)
+## Security Features
 
 ### Path Sandboxing
 ```python
@@ -420,7 +422,7 @@ from app.services import client
 
 # Create interaction with model (not agent!)
 interaction = client.interactions.create(
-    model="gemini-2.5-flash",  # Use model for sync queries
+    model="gemini-3.1-pro-preview",  # Use model for sync queries
     input=prompt,
     previous_interaction_id=continuation_id  # For follow-ups
 )
@@ -465,30 +467,6 @@ expanded = expand_file_references("Review @src/main.py")
 ```
 
 Skipped for non-code files: `.json`, `.md`, `.txt`, `.csv`
-
-## New Features (v3.0.1)
-
-### Dry-Run Mode for Code Generation
-```python
-# Preview generated code without saving
-result = generate_code(
-    prompt="Create a login form",
-    dry_run=True  # Shows preview, no files written
-)
-```
-
-### Async Video Polling
-Video generation now uses async polling when running in an async context:
-```python
-# Automatically uses asyncio.to_thread for non-blocking polling
-# Falls back to sync polling if no event loop
-```
-
-### Total Byte Limit for Codebase Analysis
-```python
-# analyze_codebase now enforces 5MB total limit
-# Prevents memory exhaustion DoS attacks
-```
 
 ## Logging
 
@@ -541,7 +519,7 @@ python3 -m pytest tests/unit/test_safe_write.py -v
 python3 -m pytest tests/ --cov=app --cov-report=html
 ```
 
-### Test Structure (118+ tests)
+### Test Structure (174+ tests)
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -552,7 +530,8 @@ tests/
 │   ├── test_add_line_numbers.py
 │   ├── test_validate_path.py      # Path traversal prevention
 │   ├── test_pydantic_schemas.py   # Input validation
-│   └── test_secrets_sanitizer.py  # Secret detection patterns
+│   ├── test_secrets_sanitizer.py  # Secret detection patterns
+│   └── test_ask_model.py          # Multi-provider routing (37 tests)
 └── integration/                   # v3.0.0+ integration tests
     ├── test_fastmcp_server.py     # FastMCP initialization (16 tests)
     ├── test_mcp_tools.py          # Tool signatures & schemas (32 tests)
@@ -560,6 +539,87 @@ tests/
     ├── test_security_v3.py        # Security features (26 tests)
     └── real_outputs/              # Live MCP tool call outputs
 ```
+
+## Release Process
+
+> **IMPORTANT — never leave work uncommitted and untagged.**
+> Any session that modifies code, tools, documentation, or plugin files
+> MUST end with either a commit+push (for minor work) or a full release
+> (for anything user-facing). If you close the session without tagging,
+> the `.dxt` on GitHub Releases and the PyPI package will be stale
+> and won't reflect the actual state of the repo.
+
+### When to release vs. when to just commit
+
+| Change type | Action |
+|-------------|--------|
+| Bug fix in code/tools | `patch` release (X.Y.**Z+1**) |
+| New feature, new command, new agent | `minor` release (X.**Y+1**.0) |
+| Breaking change or major rewrite | `major` release (**X+1**.0.0) |
+| Docs only (README, CLAUDE.md, CHANGELOG) | `git commit + push` — no tag needed |
+| Config/CI only | `git commit + push` — no tag needed |
+
+**When in doubt, release.** A patch release costs nothing and keeps PyPI and the `.dxt` in sync.
+
+### End-of-session checklist
+
+Before ending any working session:
+- [ ] Is there uncommitted work? → `git status`
+- [ ] Does the uncommitted work touch code, tools, or plugin files? → release
+- [ ] Does it touch only docs/config? → commit + push without tag
+
+Every release must keep 4 version files in sync:
+
+| File | Field |
+|------|-------|
+| `pyproject.toml` | `version = "X.Y.Z"` — **source of truth** |
+| `app/__init__.py` | `__version__ = "X.Y.Z"` |
+| `app/core/config.py` | `version: str = "X.Y.Z"` |
+| `manifest.json` | `"version": "X.Y.Z"` — DXT plugin for Claude Desktop |
+
+### Step-by-step release
+
+```bash
+# 1. Bump all 4 version files at once
+bash scripts/bump_version.sh 4.1.0
+
+# 2. Add release notes (required)
+# Edit CHANGELOG.md — add a new ## [4.1.0] section at the top
+
+# 3. Commit and tag
+git add -A
+git commit -m "chore: bump version to 4.1.0"
+git tag v4.1.0
+git push origin main v4.1.0
+```
+
+### What happens automatically (GitHub Actions)
+
+On `git push ... v4.1.0`, the CI pipeline runs `.github/workflows/publish.yml`:
+
+1. Builds and publishes the Python package to PyPI (`pip install omni-ai-mcp`)
+2. Builds `omni-ai-mcp-v4.1.0.dxt` (Claude Desktop extension)
+3. Attaches the `.dxt` to the GitHub Release as a downloadable asset
+
+### Local .dxt build (optional)
+
+```bash
+bash scripts/build_dxt.sh
+# → produces omni-ai-mcp-v4.1.0.dxt
+# Install: double-click in Finder, or drag into Claude Desktop
+```
+
+> **Note:** `build_dxt.sh` always injects the version from `pyproject.toml` into the
+> bundled manifest, so even if you forget to run `bump_version.sh` first, the `.dxt`
+> will still have the correct version. But run `bump_version.sh` anyway to keep all
+> files consistent.
+
+### Checklist before tagging
+
+- [ ] `bash scripts/bump_version.sh X.Y.Z` run successfully
+- [ ] `CHANGELOG.md` updated with `## [X.Y.Z]` entry
+- [ ] `python3 -m pytest tests/unit/ -v` passes
+- [ ] Version consistency: `python3 -c "from app.core.config import config; print(config.version)"`
 
 ## Docker Deployment
 
@@ -624,28 +684,24 @@ docker-compose --profile monitoring up -d
 
 ## Roadmap
 
-### v3.3.0 (Current) - Interactions API for ask_gemini
-- ✅ **Dual Storage Mode**: `ask_gemini` supports local (SQLite) and cloud (Interactions API)
-  - `mode="local"` (default): Fast, configurable TTL (3 hours)
-  - `mode="cloud"`: 55-day server-side retention, cross-device access
-  - Auto-detection from `continuation_id` prefix (`int_` = cloud)
-- ✅ **Conversation Management**: New tools to list and manage conversations
-  - `gemini_list_conversations`: List with title, mode (💾/☁️), activity, turn count
-  - `gemini_delete_conversation`: Delete by ID or title (partial match)
-- ✅ **Cross-Platform File Locking**: Using `filelock` library
-- ✅ **Configurable Model Versions**: Override via environment variables
-- 🔧 **Bug Fix**: Cloud mode now uses `model` param (was incorrectly using `agent`)
+### v4.0.1 (Current) - Bug Fixes + CI
+- ✅ Python 3.11 SyntaxError fix in `challenge.py`
+- ✅ All 174 unit tests passing (stale imports fixed)
+- ✅ Model registry names corrected (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`)
+- ✅ `ask_model` routing: Gemini model + `provider='openrouter'` → native API when key available
 
-### v3.2.0 - Deep Research Agent (Interactions API)
-- ✅ **`gemini_deep_research`**: Autonomous multi-step research (5-60 min)
-- ✅ **First Interactions API Integration**: Background execution with async polling
-- ✅ **Comprehensive Reports**: Synthesizes findings from 40+ sources
+### v4.0.0 (Released) - Multi-Provider + Dynamic Registry + PyPI
+- ✅ **`ask_model`**: Routes to Gemini native or 400+ models via OpenRouter
+- ✅ **`gemini_list_models`**: Live model catalog with deprecation warnings
+- ✅ **Dynamic Model Registry**: Runtime API discovery with 1h cache, fallback to config
+- ✅ **OpenRouter Integration**: Optional `OPENROUTER_API_KEY` enables 400+ models
+- ✅ **PyPI**: `pip install omni-ai-mcp` works
+- ✅ **GitHub Actions**: CI (Python 3.11/3.12) + Trusted Publishing to PyPI
 
-### v3.1.0 - Technical Debt Cleanup
-- ✅ Removed 604 lines of deprecated code
-- ✅ RAG short name resolution for file stores
+### v4.1.0 (Planned)
+- Streaming responses for `ask_gemini`
+- Multi-turn conversation support for `ask_model`
+- defusedxml parser replacing regex XML parsing
+- Cost tracking per session
 
-### v4.0.0 (Future)
-- Full migration to Interactions API for all tools
-- Local vector store for RAG (ChromaDB/FAISS)
-- Bidirectional Claude ↔ Gemini bridge via MCP
+Full roadmap: [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md)

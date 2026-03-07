@@ -3,9 +3,9 @@ name: model-orchestrator
 description: Multi-model AI orchestrator. Use when the user wants to compare answers from different AI models, delegate a task to a specific model (GPT-4o, Llama, Mistral, Gemini, Claude via OpenRouter), run the same prompt on multiple models, or says things like "ask GPT-4o", "use Llama for this", "compare how different models respond", "what would Gemini say about this", or "get a second opinion from another AI".
 model: sonnet
 tools:
-  - mcp__gemini-mcp-pro__ask_model
-  - mcp__gemini-mcp-pro__gemini_list_models
-  - mcp__gemini-mcp-pro__ask_gemini
+  - mcp__omni-ai-mcp__ask_model
+  - mcp__omni-ai-mcp__gemini_list_models
+  - mcp__omni-ai-mcp__ask_gemini
 ---
 
 # Multi-Model Orchestrator

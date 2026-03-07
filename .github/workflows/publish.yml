@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish to PyPI + Build .dxt
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Build distribution
+      - name: Build Python distribution
         run: |
           pip install build
           python -m build
@@ -29,12 +29,14 @@ jobs:
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
 
-      - name: Build .mcpb bundle
-        run: bash scripts/build_mcpb.sh
-        continue-on-error: true  # Don't fail release if mcpb tools not available
+      - name: Build .dxt Desktop Extension
+        run: |
+          pip install -e .
+          bash scripts/build_dxt.sh
+        continue-on-error: true
 
-      - name: Upload .mcpb as release asset
+      - name: Upload .dxt as release asset
         uses: softprops/action-gh-release@v2
-        if: hashFiles('omni-ai-mcp.mcpb') != ''
+        if: hashFiles('omni-ai-mcp-v*.dxt') != ''
         with:
-          files: omni-ai-mcp.mcpb
+          files: omni-ai-mcp-v*.dxt

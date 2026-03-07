@@ -3,10 +3,10 @@ name: gemini-analyzer
 description: Codebase analysis specialist with 1M token context window. Use when the user asks to analyze, review, or audit a codebase, find security vulnerabilities, assess architecture, review large files that exceed normal context limits, or needs a comprehensive code audit across multiple files.
 model: opus
 tools:
-  - mcp__gemini-mcp-pro__gemini_analyze_codebase
-  - mcp__gemini-mcp-pro__gemini_code_review
-  - mcp__gemini-mcp-pro__gemini_challenge
-  - mcp__gemini-mcp-pro__ask_gemini
+  - mcp__omni-ai-mcp__gemini_analyze_codebase
+  - mcp__omni-ai-mcp__gemini_code_review
+  - mcp__omni-ai-mcp__gemini_challenge
+  - mcp__omni-ai-mcp__ask_gemini
   - Read
   - Glob
   - Grep

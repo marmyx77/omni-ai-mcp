@@ -3,9 +3,9 @@ name: gemini-researcher
 description: Deep research specialist. Use when the user asks for comprehensive research on a topic, needs sources and citations, wants autonomous multi-step web research, or asks to "research", "investigate", or "find out about" something. Handles queries requiring 40+ sources or 5-60 minute autonomous research tasks.
 model: opus
 tools:
-  - mcp__gemini-mcp-pro__gemini_deep_research
-  - mcp__gemini-mcp-pro__gemini_web_search
-  - mcp__gemini-mcp-pro__ask_gemini
+  - mcp__omni-ai-mcp__gemini_deep_research
+  - mcp__omni-ai-mcp__gemini_web_search
+  - mcp__omni-ai-mcp__ask_gemini
 ---
 
 # Gemini Deep Researcher

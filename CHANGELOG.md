@@ -5,6 +5,101 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2026-03-07
+
+### Added
+- **Claude Desktop Extension (.dxt)**: single-click install for Claude Desktop — no Python setup required
+  - `manifest.json` rewritten to DXT format (`dxt_version: "0.1"`) with `user_config` for API keys
+  - `scripts/build_dxt.sh`: builds the bundled extension locally
+  - GitHub Actions: `.dxt` now attached to every GitHub Release automatically
+- **Claude Code Plugin — new commands**: `/gemini-challenge`, `/gemini-analyze`, `/gemini-brainstorm`, `/cowork`
+- **Claude Code Plugin — new agent**: `cowork` — Claude + Gemini parallel analysis with 4 modes (Validate, Parallel solve, Challenge, Research+Apply)
+- **`scripts/bump_version.sh`**: updates all 4 version files at once (`pyproject.toml`, `app/__init__.py`, `app/core/config.py`, `manifest.json`)
+
+### Fixed
+- **Agent tool prefix**: all `.claude/agents/*.md` used `mcp__gemini-mcp-pro__*` (stale name); corrected to `mcp__omni-ai-mcp__*`
+- **Command frontmatter**: added `description:` to all slash commands so they appear correctly in Claude Code's `/help`
+
+### Changed
+- **`requirements.txt`**: added missing `mcp[cli]>=1.0.0` and `defusedxml>=0.7.1`
+- **Release process documented** in `CLAUDE.md`: when to release vs. commit, end-of-session checklist, `bump_version.sh` workflow
+
+---
+
+## [4.0.1] - 2026-03-07
+
+### Fixed
+- **Python 3.11 SyntaxError** in `challenge.py`: backslash sequence inside f-string expression part caused `SyntaxError` on Python 3.11; fixed by extracting variable before the f-string
+- **Stale Test Imports**: 7 test files retained `from server import X` imports from the pre-v3.x single-file architecture; updated 103+ import statements to correct `app.*` module paths
+- **Model Registry Names**: `gemini-3.1-flash` and `gemini-3.1-flash-lite` (non-existent API names) replaced with actual available names `gemini-3-flash-preview` and `gemini-3.1-flash-lite-preview`
+- **ask_model Routing Logic**: Gemini model + `provider='openrouter'` now correctly uses Gemini native API when key is available; condition changed to `gemini_model or provider != 'openrouter'`
+
+### Changed
+- **Test Suite**: All 174 unit tests now pass (was 103 failing before import fixes)
+- **CI Pipeline**: Both Python 3.11 and 3.12 builds now pass in GitHub Actions
+
+---
+
+## [4.0.0] - 2026-03-07
+
+### Multi-Provider Support + Dynamic Model Registry + PyPI Distribution
+
+Major release transforming omni-ai-mcp from a Gemini-only bridge to a full multi-provider MCP server with 20 tools, PyPI distribution, GitHub Actions CI/CD, and Claude Code plugin support.
+
+### Added
+- **`ask_model` tool** (20th tool): Provider-agnostic routing to Gemini native API or 400+ models via OpenRouter
+  - `provider="auto"` (default): auto-detects from model name
+  - `provider="gemini"` / `provider="openrouter"`: explicit routing
+  - Routing guarantee: explicit Gemini model IDs always use native API when key is available
+  - Fallback: Gemini model → `google/gemini-*` on OpenRouter if no Gemini key
+
+- **`gemini_list_models` tool** (19th tool): Live model catalog from API with deprecation warnings
+  - Shows best available model per category (text_pro, text_flash, image, video, tts, deep_research)
+  - Includes OpenRouter availability and default model
+  - Warns about config values no longer in available model list
+
+- **Dynamic Model Registry** (`app/services/model_registry.py`): Runtime model discovery
+  - Calls `client.models.list()` at startup with 1-hour cache TTL
+  - Priority-ordered candidates per category (Gemini 3.1 Pro > 3 Pro > 2.5 Pro)
+  - Falls back to static config values if API discovery fails
+  - Never crashes on discovery failure
+
+- **OpenRouter Integration** (`app/services/openrouter.py`): 400+ model access
+  - Optional: only activated when `OPENROUTER_API_KEY` is set
+  - OpenAI-compatible API interface
+  - Model list cached for 1 hour
+
+- **PyPI Distribution**: Package published as `omni-ai-mcp`
+  - `pip install omni-ai-mcp` works
+  - `omni-ai-mcp-setup` CLI for configuring Claude Code automatically
+
+- **GitHub Actions CI/CD**:
+  - `.github/workflows/test.yml`: Tests on Python 3.11 and 3.12
+  - `.github/workflows/publish.yml`: Trusted Publishing to PyPI on version tags (no API token)
+
+- **Claude Code Plugin** (`.claude/` directory):
+  - Slash commands: `/gemini`, `/gemini-research`, `/gemini-review`, `/gemini-models`
+  - Subagents: `gemini-researcher`, `gemini-analyzer`
+
+### Changed
+- **Tool Count**: 20 tools total (was 18 in v3.3.0)
+- **Package Name**: `gemini-mcp-pro` → `omni-ai-mcp` to reflect multi-provider nature
+- **Model Defaults**: Updated to `gemini-3.1-pro-preview` (was deprecated `gemini-3-pro-preview`)
+- **Config additions**: `OPENROUTER_API_KEY`, `OPENROUTER_DEFAULT_MODEL`, video model env vars (`GEMINI_MODEL_VEO3`, `GEMINI_MODEL_VEO2`)
+
+### New Files
+- `app/services/model_registry.py` — Dynamic model discovery and resolution
+- `app/services/openrouter.py` — OpenRouter API client
+- `app/tools/text/ask_model.py` — Multi-provider routing tool
+- `app/tools/text/models.py` — Live model catalog tool
+- `app/cli.py` — Setup wizard CLI
+- `.github/workflows/test.yml` — CI pipeline
+- `.github/workflows/publish.yml` — PyPI release workflow
+- `.claude/commands/gemini.md`, `gemini-research.md`, `gemini-review.md`, `gemini-models.md`
+- `.claude/agents/gemini-researcher.md`, `gemini-analyzer.md`
+
+---
+
 ## [3.3.0] - 2025-12-15
 
 ### 🌐 Interactions API Integration (ask_gemini)

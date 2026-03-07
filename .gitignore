@@ -55,3 +55,7 @@ test_generated/
 DEVELOPMENT_ROADMAP.md
 internal-test/
 plugins/
+# Build artifacts
+*.dxt
+*.mcpb
+build_dxt/

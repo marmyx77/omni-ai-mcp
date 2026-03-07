@@ -70,6 +70,17 @@ pip install omni-ai-mcp
 omni-ai-mcp-setup  # interactive setup wizard
 ```
 
+### Claude Desktop Extension (.dxt)
+
+Install with one click — no Python setup required:
+
+1. Download `omni-ai-mcp-vX.Y.Z.dxt` from [GitHub Releases](https://github.com/marmyx77/omni-ai-mcp/releases)
+2. Double-click the file (macOS/Windows) or drag it into Claude Desktop
+3. Enter your Gemini API key when prompted (OpenRouter key is optional)
+4. Done — all 20 tools are immediately available in Claude Desktop
+
+The `.dxt` bundle includes all Python dependencies — users don't need to install anything else.
+
 ---
 
 ## 20 Tools
@@ -421,25 +432,37 @@ All settings via environment variables:
 
 ### Slash Commands
 
-Included in `.claude/commands/` (auto-available in Claude Code):
+Included in `.claude/commands/` (auto-available in Claude Code when working inside this repo, or copy to `~/.claude/commands/` for global access):
 
 | Command | Action |
 |---------|--------|
-| `/gemini <prompt>` | Quick ask_gemini call |
-| `/gemini-research <topic>` | Start deep research |
-| `/gemini-review <file>` | Code review |
-| `/gemini-models` | List available models |
-| `/ask-model [model] <prompt>` | Ask any model (GPT-4o, Llama, Gemini, etc.) |
+| `/gemini <prompt>` | Ask Gemini Pro anything |
+| `/gemini-research <topic>` | Autonomous deep research (40+ sources, 5-30 min) |
+| `/gemini-review <file>` | Code review focused on bugs, security, performance |
+| `/gemini-challenge <idea>` | Devil's Advocate — find flaws in a plan or architecture |
+| `/gemini-analyze <path>` | Codebase analysis with 1M token context window |
+| `/gemini-brainstorm <topic>` | Structured brainstorming (6 methodologies) |
+| `/gemini-models` | List available models (Gemini + OpenRouter) |
+| `/ask-model [model] <prompt>` | Ask any model: GPT-4o, Llama, Mistral, Gemini, etc. |
+| `/cowork <task>` | Claude + Gemini working in parallel on the same task |
 
 ### Subagents
 
-Included in `.claude/agents/` — Claude Code invokes these automatically:
+Included in `.claude/agents/` — Claude Code activates these automatically based on context:
 
 | Agent | Trigger | Capability |
 |-------|---------|------------|
-| `gemini-researcher` | "research X", "find out about Y" | Deep Research Agent, 40+ sources |
-| `gemini-analyzer` | "analyze codebase", "security audit" | 1M token context window |
-| `model-orchestrator` | "ask GPT-4o", "compare models", "use Llama" | Routes to 400+ models |
+| `gemini-researcher` | "research X", "investigate Y", "find sources on Z" | Deep Research Agent, 40+ sources |
+| `gemini-analyzer` | "analyze codebase", "security audit", "review architecture" | 1M token context window |
+| `model-orchestrator` | "ask GPT-4o", "compare models", "use Llama for this" | Routes to 400+ models via OpenRouter |
+| `cowork` | "second opinion", "verify with Gemini", "stress test this" | Claude + Gemini parallel analysis with synthesis |
+
+### Install globally (all projects)
+
+```bash
+cp -r .claude/commands/* ~/.claude/commands/
+cp -r .claude/agents/* ~/.claude/agents/
+```
 
 ---
 
@@ -488,7 +511,7 @@ omni-ai-mcp/
 |   +-- commands/              # Slash commands
 |   +-- agents/                # Subagents
 +-- setup.sh                   # One-command install
-+-- manifest.json              # .mcpb bundle manifest
++-- manifest.json              # DXT extension manifest (Claude Desktop)
 +-- pyproject.toml
 ```
 
