@@ -2,7 +2,7 @@
   "dxt_version": "0.1",
   "name": "omni-ai-mcp",
   "display_name": "Omni AI MCP",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "Multi-AI MCP bridge: Gemini + 400+ models via OpenRouter. 20 tools: text generation, code review, image, video, TTS, RAG, Deep Research.",
   "author": {
     "name": "Marco Armellino",
@@ -15,22 +15,18 @@
   "license": "MIT",
   "server": {
     "type": "python",
-    "entry_point": "server/run.py",
+    "entry_point": "omni-ai-mcp",
     "mcp_config": {
-      "command": "python3",
-      "args": ["${__dirname}/server/run.py"],
+      "command": "uvx",
+      "args": ["omni-ai-mcp"],
       "env": {
         "GEMINI_API_KEY": "${user_config.gemini_api_key}",
-        "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}",
-        "PYTHONPATH": "${__dirname}/lib"
+        "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}"
       }
     }
   },
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
-    "runtimes": {
-      "python": ">=3.9,<4.0"
-    }
+    "platforms": ["darwin", "win32", "linux"]
   },
   "user_config": {
     "gemini_api_key": {

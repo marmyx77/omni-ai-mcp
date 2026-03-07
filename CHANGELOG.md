@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.4] - 2026-03-07
+
+### Fixed
+- **DXT bundle "too many files"**: Claude Desktop has a 200-file limit; previous bundle included hundreds of bundled Python dependency files. Switched to `uvx` strategy — `manifest.json` only uses `uvx omni-ai-mcp` to pull the package from PyPI at runtime. Bundle is now 1 file / 4KB instead of 14MB
+- **Prerequisite**: end users need `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+
+---
+
 ## [4.0.3] - 2026-03-07
 
 ### Fixed
-- **Build script**: `build_dxt.sh` now produces both `.dxt` and `.zip` — the `.zip` is for Claude Desktop versions that show an "upload zip" dialog instead of recognizing `.dxt` directly
-- **GitHub Actions**: both `.dxt` and `.zip` are now attached to every GitHub Release
+- **Build script**: `build_dxt.sh` now produces both `.dxt` and `.zip`
+- **GitHub Actions**: both `.dxt` and `.zip` attached to every GitHub Release
 
 ---
 
