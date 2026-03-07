@@ -1,5 +1,5 @@
 """
-omni-ai-mcp v4.0.0
+omni-ai-mcp v4.0.1
 Multi-AI MCP bridge: Gemini + OpenRouter.
 
 Features:
@@ -11,7 +11,7 @@ Features:
 - Security: sandboxing, secrets sanitization, cross-platform file locking
 """
 
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 
 from .server import main
 
