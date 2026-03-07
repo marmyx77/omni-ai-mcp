@@ -5,7 +5,7 @@
   "description": "Bridge Claude with Google Gemini + OpenRouter: text, code, image, video, TTS, RAG, Deep Research, and 400+ models",
   "author": "Marco Armellino",
   "license": "MIT",
-  "homepage": "https://github.com/marcoarmellino/omni-ai-mcp",
+  "homepage": "https://github.com/marmyx77/omni-ai-mcp",
   "server": {
     "type": "python",
     "entry_point": "app.main",

@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version 4.0.0](https://img.shields.io/badge/version-4.0.0-green.svg)](https://github.com/marcoarmellino/omni-ai-mcp/releases)
+[![Version 4.0.0](https://img.shields.io/badge/version-4.0.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 ---
@@ -100,7 +100,7 @@ export OPENROUTER_DEFAULT_MODEL=openai/gpt-4o
 ### Install
 
 ```bash
-git clone https://github.com/marcoarmellino/omni-ai-mcp.git
+git clone https://github.com/marmyx77/omni-ai-mcp.git
 cd omni-ai-mcp
 
 # Gemini only
