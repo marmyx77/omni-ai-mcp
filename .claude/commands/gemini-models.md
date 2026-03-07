@@ -1,5 +1,5 @@
 ---
-description: List available AI models (Gemini + OpenRouter). Usage: /gemini-models
+description: "List available AI models (Gemini + OpenRouter). Usage: /gemini-models"
 ---
 
 Use the gemini_list_models tool to show all available AI models.

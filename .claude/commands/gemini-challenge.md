@@ -1,5 +1,5 @@
 ---
-description: Devil's Advocate - challenge an idea, plan, or code to find flaws. Usage: /gemini-challenge <statement>
+description: "Devil's Advocate - challenge an idea, plan, or code to find flaws. Usage: /gemini-challenge <statement>"
 ---
 
 Use the gemini_challenge tool to critically analyze the following: $ARGUMENTS

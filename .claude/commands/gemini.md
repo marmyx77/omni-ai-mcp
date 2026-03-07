@@ -1,5 +1,5 @@
 ---
-description: Ask Gemini Pro anything. Usage: /gemini <question or task>
+description: "Ask Gemini Pro anything. Usage: /gemini <question or task>"
 ---
 
 Use the ask_gemini tool to answer the following: $ARGUMENTS

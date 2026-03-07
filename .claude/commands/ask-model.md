@@ -1,5 +1,5 @@
 ---
-description: Ask any AI model (Gemini, GPT-4o, Llama, Mistral, Claude via OpenRouter). Usage: /ask-model [model] [prompt]. Examples: /ask-model gpt-4o explain quantum computing, /ask-model gemini what is RLHF
+description: "Ask any AI model (Gemini, GPT-4o, Llama, Mistral, Claude via OpenRouter). Usage: /ask-model [model] [prompt]. Examples: /ask-model gpt-4o explain quantum computing, /ask-model gemini what is RLHF"
 ---
 
 Parse $ARGUMENTS to extract the model and prompt:

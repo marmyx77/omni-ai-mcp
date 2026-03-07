@@ -1,5 +1,5 @@
 ---
-description: Claude + Gemini co-working on the same task for two independent perspectives. Usage: /cowork <task or question>
+description: "Claude + Gemini co-working on the same task for two independent perspectives. Usage: /cowork <task or question>"
 ---
 
 Invoke the cowork agent to work on: $ARGUMENTS

@@ -1,5 +1,5 @@
 ---
-description: Structured brainstorming with 6 methodologies. Usage: /gemini-brainstorm <topic>
+description: "Structured brainstorming with 6 methodologies. Usage: /gemini-brainstorm <topic>"
 ---
 
 Use the gemini_brainstorm tool to brainstorm ideas for: $ARGUMENTS

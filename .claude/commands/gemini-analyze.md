@@ -1,5 +1,5 @@
 ---
-description: Analyze a codebase or directory with Gemini's 1M context window. Usage: /gemini-analyze [path or files]
+description: "Analyze a codebase or directory with Gemini's 1M context window. Usage: /gemini-analyze [path or files]"
 ---
 
 Use the gemini_analyze_codebase tool to analyze: $ARGUMENTS
