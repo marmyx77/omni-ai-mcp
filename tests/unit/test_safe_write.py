@@ -15,7 +15,7 @@ class TestSafeFileWriterBasic:
 
     def test_creates_new_file(self, temp_sandbox):
         """SafeFileWriter creates a new file successfully."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         writer = SafeFileWriter()
         file_path = f"{temp_sandbox}/new_file.py"
@@ -28,7 +28,7 @@ class TestSafeFileWriterBasic:
 
     def test_content_written_correctly(self, temp_sandbox):
         """File content matches what was written."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         writer = SafeFileWriter()
         file_path = f"{temp_sandbox}/content_test.py"
@@ -41,7 +41,7 @@ class TestSafeFileWriterBasic:
 
     def test_creates_parent_directories(self, temp_sandbox):
         """SafeFileWriter creates parent directories if needed."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         writer = SafeFileWriter()
         file_path = f"{temp_sandbox}/deep/nested/dir/file.py"
@@ -52,7 +52,7 @@ class TestSafeFileWriterBasic:
 
     def test_no_backup_for_new_file(self, temp_sandbox):
         """No backup is created for a new file."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         writer = SafeFileWriter()
         file_path = f"{temp_sandbox}/new_no_backup.py"
@@ -67,7 +67,7 @@ class TestSafeFileWriterBackup:
 
     def test_creates_backup_on_overwrite(self, temp_sandbox):
         """Backup is created when overwriting existing file."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         file_path = Path(temp_sandbox) / "existing.py"
         file_path.write_text("original content")
@@ -81,7 +81,7 @@ class TestSafeFileWriterBackup:
 
     def test_backup_contains_original_content(self, temp_sandbox):
         """Backup file contains the original content."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         file_path = Path(temp_sandbox) / "backup_content.py"
         original = "original content here"
@@ -100,7 +100,7 @@ class TestSafeFileWriterBackup:
 
     def test_backup_rotation_max_5(self, temp_sandbox):
         """Only keeps maximum 5 backups per file."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
         import time
 
         file_path = Path(temp_sandbox) / "rotation_test.py"
@@ -120,7 +120,7 @@ class TestSafeFileWriterBackup:
 
     def test_skip_backup_when_disabled(self, temp_sandbox):
         """No backup when create_backup=False."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         file_path = Path(temp_sandbox) / "no_backup.py"
         file_path.write_text("original")
@@ -133,7 +133,7 @@ class TestSafeFileWriterBackup:
 
     def test_gitignore_created_in_backup_dir(self, temp_sandbox):
         """A .gitignore is created in backup directory."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         file_path = Path(temp_sandbox) / "gitignore_test.py"
         file_path.write_text("original")
@@ -151,7 +151,7 @@ class TestSafeFileWriterPermissions:
 
     def test_preserves_executable_permission(self, temp_sandbox):
         """Executable permission is preserved after overwrite."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         file_path = Path(temp_sandbox) / "executable.py"
         file_path.write_text("#!/usr/bin/env python3")
@@ -169,7 +169,7 @@ class TestSafeFileWriterPermissions:
 
     def test_preserves_readonly_makes_writable(self, temp_sandbox):
         """Can write to read-only file by temporarily changing permissions."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         file_path = Path(temp_sandbox) / "readonly.py"
         file_path.write_text("original")
@@ -187,7 +187,7 @@ class TestSafeFileWriterContentHash:
 
     def test_hash_is_consistent(self, temp_sandbox):
         """Same content produces same hash."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         writer = SafeFileWriter()
         content = "test content"
@@ -199,7 +199,7 @@ class TestSafeFileWriterContentHash:
 
     def test_different_content_different_hash(self, temp_sandbox):
         """Different content produces different hash."""
-        from server import SafeFileWriter
+        from app.core.security import SafeFileWriter
 
         writer = SafeFileWriter()
 
@@ -214,7 +214,7 @@ class TestSecureWriteFile:
 
     def test_secure_write_file_function(self, temp_sandbox):
         """secure_write_file() works as convenience wrapper."""
-        from server import secure_write_file
+        from app.core.security import secure_write_file
 
         file_path = f"{temp_sandbox}/secure_test.py"
         result = secure_write_file(file_path, "test content")
@@ -224,7 +224,7 @@ class TestSecureWriteFile:
 
     def test_secure_write_file_creates_backup(self, temp_sandbox):
         """secure_write_file() creates backup on overwrite."""
-        from server import secure_write_file, SafeFileWriter
+        from app.core.security import secure_write_file, SafeFileWriter
 
         file_path = Path(temp_sandbox) / "secure_backup.py"
         file_path.write_text("original")

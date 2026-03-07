@@ -12,7 +12,7 @@ class TestAddLineNumbers:
 
     def test_adds_line_numbers_basic(self):
         """Adds line numbers to basic content."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "line1\nline2\nline3"
         result = add_line_numbers(content)
@@ -24,7 +24,7 @@ class TestAddLineNumbers:
 
     def test_line_number_format(self):
         """Line numbers use correct format with separator."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "hello"
         result = add_line_numbers(content)
@@ -37,7 +37,7 @@ class TestAddLineNumbers:
 
     def test_preserves_content(self):
         """Original content is preserved."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "def foo():\n    return 42"
         result = add_line_numbers(content)
@@ -47,14 +47,14 @@ class TestAddLineNumbers:
 
     def test_handles_empty_content(self):
         """Handles empty string gracefully."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         result = add_line_numbers("")
         assert isinstance(result, str)
 
     def test_handles_single_line(self):
         """Handles single line content."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "single line"
         result = add_line_numbers(content)
@@ -64,7 +64,7 @@ class TestAddLineNumbers:
 
     def test_handles_many_lines(self):
         """Handles many lines with proper alignment."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         # Create 100+ lines
         lines = [f"line {i}" for i in range(150)]
@@ -79,7 +79,7 @@ class TestAddLineNumbers:
 
     def test_alignment_with_different_widths(self):
         """Line numbers align properly for different counts."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         # 5 lines - single digit
         content5 = "a\nb\nc\nd\ne"
@@ -95,7 +95,7 @@ class TestAddLineNumbers:
 
     def test_custom_start_line(self):
         """Supports custom start line number."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "line1\nline2"
         result = add_line_numbers(content, start_line=10)
@@ -106,7 +106,7 @@ class TestAddLineNumbers:
 
     def test_preserves_indentation(self):
         """Preserves original code indentation."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "def foo():\n    if True:\n        pass"
         result = add_line_numbers(content)
@@ -117,7 +117,7 @@ class TestAddLineNumbers:
 
     def test_handles_blank_lines(self):
         """Handles blank lines correctly."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "line1\n\nline3"
         result = add_line_numbers(content)
@@ -127,7 +127,7 @@ class TestAddLineNumbers:
 
     def test_handles_trailing_newline(self):
         """Handles trailing newline correctly."""
-        from server import add_line_numbers
+        from app.utils.file_refs import add_line_numbers
 
         content = "line1\nline2\n"
         result = add_line_numbers(content)

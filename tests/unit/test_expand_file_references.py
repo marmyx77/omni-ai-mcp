@@ -14,7 +14,7 @@ class TestExpandFileReferences:
 
     def test_expands_single_file(self, sample_python_file, temp_sandbox):
         """Expands single @file reference."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"Review this: @{sample_python_file}"
         result = expand_file_references(text)
@@ -24,7 +24,7 @@ class TestExpandFileReferences:
 
     def test_no_expansion_for_email(self, temp_sandbox):
         """Does not expand email addresses."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = "Contact: user@example.com"
         result = expand_file_references(text)
@@ -34,7 +34,7 @@ class TestExpandFileReferences:
 
     def test_expands_glob_pattern(self, test_files_dir):
         """Expands glob patterns like @*.py."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"Check files: @{test_files_dir}/*.py"
         result = expand_file_references(text)
@@ -43,7 +43,7 @@ class TestExpandFileReferences:
 
     def test_expands_recursive_glob(self, test_files_dir):
         """Expands recursive glob patterns."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"All Python: @{test_files_dir}/**/*.py"
         result = expand_file_references(text)
@@ -53,7 +53,7 @@ class TestExpandFileReferences:
 
     def test_expands_directory_listing(self, test_files_dir):
         """Expands @directory to listing."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"List: @{test_files_dir}"
         result = expand_file_references(text)
@@ -63,7 +63,7 @@ class TestExpandFileReferences:
 
     def test_multiple_references(self, test_files_dir):
         """Expands multiple @references in same text."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"File1: @{test_files_dir}/code.py and File2: @{test_files_dir}/data.json"
         result = expand_file_references(text)
@@ -73,7 +73,7 @@ class TestExpandFileReferences:
 
     def test_preserves_surrounding_text(self, sample_python_file):
         """Preserves text around @references."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"Please review @{sample_python_file} and give feedback."
         result = expand_file_references(text)
@@ -83,7 +83,7 @@ class TestExpandFileReferences:
 
     def test_handles_nonexistent_file(self, temp_sandbox):
         """Handles nonexistent file gracefully."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"@{temp_sandbox}/nonexistent.py"
         result = expand_file_references(text)
@@ -93,7 +93,7 @@ class TestExpandFileReferences:
 
     def test_line_numbers_added_to_code(self, sample_python_file):
         """Line numbers are added to code files."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"@{sample_python_file}"
         result = expand_file_references(text)
@@ -105,7 +105,7 @@ class TestExpandFileReferences:
 
     def test_no_line_numbers_for_json(self, test_files_dir):
         """No line numbers for JSON files."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = f"@{test_files_dir}/data.json"
         result = expand_file_references(text)
@@ -119,7 +119,7 @@ class TestExpandFileReferencesLimits:
 
     def test_truncates_large_files(self, temp_sandbox):
         """Large files are truncated."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         # Create a large file
         large_file = Path(temp_sandbox) / "large.py"
@@ -134,7 +134,7 @@ class TestExpandFileReferencesLimits:
 
     def test_glob_max_files(self, temp_sandbox):
         """Glob patterns limited to max files."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         # Create many files
         for i in range(20):
@@ -153,7 +153,7 @@ class TestExpandFileReferencesEdgeCases:
 
     def test_at_symbol_not_followed_by_path(self):
         """Handles @ not followed by valid path."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         text = "@ alone and @123 numbers"
         result = expand_file_references(text)
@@ -163,14 +163,14 @@ class TestExpandFileReferencesEdgeCases:
 
     def test_empty_text(self):
         """Handles empty text."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
 
         result = expand_file_references("")
         assert result == ""
 
     def test_current_directory_reference(self, temp_sandbox):
         """Handles @. for current directory."""
-        from server import expand_file_references
+        from app.utils.file_refs import expand_file_references
         import os
 
         # Create a file in temp_sandbox

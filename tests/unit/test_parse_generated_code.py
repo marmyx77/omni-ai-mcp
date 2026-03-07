@@ -12,7 +12,7 @@ class TestParseGeneratedCode:
 
     def test_extracts_single_file(self):
         """Extracts a single file from XML."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '''<GENERATED_CODE>
 <FILE action="create" path="hello.py">
@@ -29,7 +29,7 @@ print("hello")
 
     def test_extracts_multiple_files(self, sample_generated_code_xml):
         """Extracts multiple files from XML."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         files = parse_generated_code(sample_generated_code_xml)
 
@@ -39,7 +39,7 @@ print("hello")
 
     def test_extracts_action_attribute(self):
         """Correctly extracts action attribute."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '''<GENERATED_CODE>
 <FILE action="modify" path="existing.py">
@@ -53,7 +53,7 @@ modified content
 
     def test_preserves_content_whitespace(self):
         """Preserves whitespace/indentation in content."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '''<GENERATED_CODE>
 <FILE action="create" path="indented.py">
@@ -70,14 +70,14 @@ def foo():
 
     def test_handles_empty_xml(self):
         """Returns empty list for empty XML."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         files = parse_generated_code('')
         assert files == []
 
     def test_handles_no_files(self):
         """Returns empty list when no FILE tags present."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '<GENERATED_CODE>\nNo files here\n</GENERATED_CODE>'
         files = parse_generated_code(xml)
@@ -86,7 +86,7 @@ def foo():
 
     def test_handles_malformed_xml(self):
         """Handles malformed XML gracefully."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '<GENERATED_CODE><FILE action="create" path="test.py">content'
         # Should not raise, just return what it can parse
@@ -97,7 +97,7 @@ def foo():
 
     def test_extracts_path_with_directories(self):
         """Extracts paths with directory structure."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '''<GENERATED_CODE>
 <FILE action="create" path="src/components/Button.tsx">
@@ -111,7 +111,7 @@ export const Button = () => <button>Click</button>
 
     def test_handles_special_characters_in_content(self):
         """Handles special characters in file content."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '''<GENERATED_CODE>
 <FILE action="create" path="special.py">
@@ -127,7 +127,7 @@ regex = r"test.*\d+"
 
     def test_default_action_is_create(self):
         """Default action should be 'create' if not specified."""
-        from server import parse_generated_code
+        from app.tools.code.generate_code import parse_generated_code
 
         xml = '''<GENERATED_CODE>
 <FILE path="no_action.py">

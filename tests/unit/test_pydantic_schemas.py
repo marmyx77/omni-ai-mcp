@@ -12,7 +12,7 @@ class TestValidateToolInput:
 
     def test_valid_ask_gemini_input(self):
         """Valid input passes validation."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Hello', 'model': 'pro', 'temperature': 0.7}
         result = validate_tool_input('ask_gemini', args)
@@ -23,7 +23,7 @@ class TestValidateToolInput:
 
     def test_defaults_applied(self):
         """Default values are applied for missing fields."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Test'}
         result = validate_tool_input('ask_gemini', args)
@@ -35,7 +35,7 @@ class TestValidateToolInput:
 
     def test_enum_serialized_to_string(self):
         """Enums are serialized to string values."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Test', 'thinking_level': 'high'}
         result = validate_tool_input('ask_gemini', args)
@@ -45,7 +45,7 @@ class TestValidateToolInput:
 
     def test_invalid_temperature_rejected(self):
         """Temperature outside range raises error."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Test', 'temperature': 2.0}
 
@@ -56,7 +56,7 @@ class TestValidateToolInput:
 
     def test_invalid_model_rejected(self):
         """Invalid model value raises error."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Test', 'model': 'invalid_model'}
 
@@ -67,7 +67,7 @@ class TestValidateToolInput:
 
     def test_missing_required_field_rejected(self):
         """Missing required field raises error."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'model': 'pro'}  # Missing 'prompt'
 
@@ -78,7 +78,7 @@ class TestValidateToolInput:
 
     def test_empty_prompt_rejected(self):
         """Empty prompt raises error."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': ''}
 
@@ -89,7 +89,7 @@ class TestValidateToolInput:
 
     def test_unknown_tool_passes_through(self):
         """Unknown tools pass through without validation."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'any': 'value', 'unknown': 123}
         result = validate_tool_input('unknown_tool', args)
@@ -102,7 +102,7 @@ class TestGenerateCodeInput:
 
     def test_null_context_files_handled(self):
         """Null context_files converted to empty list."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Create function', 'context_files': None}
         result = validate_tool_input('gemini_generate_code', args)
@@ -111,7 +111,7 @@ class TestGenerateCodeInput:
 
     def test_context_files_preserved(self):
         """Non-null context_files preserved."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         files = ['@file1.py', '@file2.py']
         args = {'prompt': 'Create function', 'context_files': files}
@@ -121,7 +121,7 @@ class TestGenerateCodeInput:
 
     def test_style_enum_values(self):
         """Style enum values work correctly."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         for style in ['production', 'prototype', 'minimal']:
             args = {'prompt': 'Test', 'style': style}
@@ -130,7 +130,7 @@ class TestGenerateCodeInput:
 
     def test_language_options(self):
         """Language options validated."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         languages = ['auto', 'python', 'typescript', 'javascript', 'rust', 'go']
         for lang in languages:
@@ -144,7 +144,7 @@ class TestChallengeInput:
 
     def test_focus_options(self):
         """Focus enum values work correctly."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         focus_options = ['general', 'security', 'performance',
                          'maintainability', 'scalability', 'cost']
@@ -156,7 +156,7 @@ class TestChallengeInput:
 
     def test_context_default_empty(self):
         """Context defaults to empty string."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'statement': 'Test'}
         result = validate_tool_input('gemini_challenge', args)
@@ -169,7 +169,7 @@ class TestAnalyzeCodebaseInput:
 
     def test_files_required(self):
         """Files field is required."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         args = {'prompt': 'Analyze'}
 
@@ -180,7 +180,7 @@ class TestAnalyzeCodebaseInput:
 
     def test_analysis_type_options(self):
         """Analysis type enum values work."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         types = ['architecture', 'security', 'refactoring',
                  'documentation', 'dependencies', 'general']
@@ -196,7 +196,7 @@ class TestBrainstormInput:
 
     def test_idea_count_range(self):
         """Idea count must be in valid range."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         # Valid
         args = {'topic': 'Test', 'idea_count': 10}
@@ -213,7 +213,7 @@ class TestBrainstormInput:
 
     def test_methodology_options(self):
         """Methodology enum values work."""
-        from server import validate_tool_input
+        from app.schemas.inputs import validate_tool_input
 
         methods = ['auto', 'divergent', 'convergent', 'scamper',
                    'design-thinking', 'lateral']
