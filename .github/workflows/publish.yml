@@ -35,10 +35,15 @@ jobs:
           bash scripts/build_dxt.sh
         continue-on-error: true
 
-      - name: Upload .dxt and .zip as release assets
+      - name: Build Claude Code plugin zip
+        run: bash scripts/build_plugin.sh
+        continue-on-error: true
+
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
-        if: hashFiles('omni-ai-mcp-v*.dxt') != ''
+        if: always()
         with:
           files: |
             omni-ai-mcp-v*.dxt
             omni-ai-mcp-v*.zip
+            omni-ai-mcp-plugin-v*.zip

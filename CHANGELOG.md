@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.5] - 2026-03-07
+
+### Fixed
+- **Claude Code plugin format**: previous zip used `.dxt`/`manifest.json` format which Claude Code rejected with "Zip must contain a .claude-plugin/plugin.json file"; added correct `.claude-plugin/plugin.json` format
+- **`scripts/build_plugin.sh`**: new script that builds the Claude Code plugin zip (18 files, 14KB) with `.claude-plugin/plugin.json`, `.mcp.json` (uvx), `commands/`, and `agents/`
+- **GitHub Actions**: plugin zip now attached to every release alongside `.dxt`
+
+### Note
+Two separate distribution formats now exist:
+- `omni-ai-mcp-plugin-vX.Y.Z.zip` — **Claude Code** plugin (installs commands, agents, MCP server)
+- `omni-ai-mcp-vX.Y.Z.dxt` / `.zip` — **Claude Desktop** extension (installs MCP server only)
+
+---
+
 ## [4.0.4] - 2026-03-07
 
 ### Fixed
