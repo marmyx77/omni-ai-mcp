@@ -125,21 +125,61 @@ class TestAskModelRouting:
 
         assert "No API key" in result or "Error" in result
 
-    def test_provider_force_openrouter(self):
+    def test_gemini_model_overrides_openrouter_provider(self):
+        """Gemini model ID always uses Gemini API, even if provider='openrouter' is forced."""
         from app.tools.text.ask_model import ask_model
 
+        mock_resp = self._mock_gemini("Gemini wins")
         mock_or = MagicMock()
-        mock_or.is_available = True
-        mock_or.generate.return_value = "Forced OR"
-        mock_or._default_model = "openai/gpt-4o"
 
-        with patch("app.tools.text.ask_model.openrouter_client", mock_or):
+        with patch("app.tools.text.ask_model.generate_with_fallback", return_value=mock_resp), \
+             patch("app.tools.text.ask_model.is_available", return_value=True), \
+             patch("app.tools.text.ask_model.openrouter_client", mock_or):
             result = ask_model(
                 prompt="hello", model="gemini-3.1-pro-preview", provider="openrouter"
             )
 
+        mock_or.generate.assert_not_called()
+        assert result == "Gemini wins"
+
+    def test_short_name_overrides_openrouter_provider(self):
+        """Short alias 'pro' always uses Gemini API, even if provider='openrouter'."""
+        from app.tools.text.ask_model import ask_model
+
+        mock_resp = self._mock_gemini("Gemini Pro")
+        mock_or = MagicMock()
+
+        with patch("app.tools.text.ask_model.generate_with_fallback", return_value=mock_resp), \
+             patch("app.tools.text.ask_model.is_available", return_value=True), \
+             patch("app.tools.text.ask_model.openrouter_client", mock_or):
+            result = ask_model(prompt="hello", model="pro", provider="openrouter")
+
+        mock_or.generate.assert_not_called()
+        assert result == "Gemini Pro"
+
+    def test_provider_gemini_with_non_gemini_model_returns_error(self):
+        """provider='gemini' + non-Gemini model → error message."""
+        from app.tools.text.ask_model import ask_model
+
+        result = ask_model(prompt="hello", model="openai/gpt-4o", provider="gemini")
+
+        assert "Error" in result
+        assert "not a Gemini model" in result
+
+    def test_openrouter_with_no_model_uses_default(self):
+        """provider='openrouter' + no model → OpenRouter with default model."""
+        from app.tools.text.ask_model import ask_model
+
+        mock_or = MagicMock()
+        mock_or.is_available = True
+        mock_or.generate.return_value = "OR default"
+        mock_or._default_model = "openai/gpt-4o"
+
+        with patch("app.tools.text.ask_model.openrouter_client", mock_or):
+            result = ask_model(prompt="hello", model=None, provider="openrouter")
+
         mock_or.generate.assert_called_once()
-        assert result == "Forced OR"
+        assert result == "OR default"
 
     def test_auto_provider_none_model_uses_gemini(self):
         from app.tools.text.ask_model import ask_model

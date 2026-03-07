@@ -117,14 +117,22 @@ def ask_model(
     """
     from ...services.model_registry import model_registry
 
-    # Determine effective provider
-    if provider == "auto":
-        if model is None or _is_gemini_model(model):
-            effective_provider = "gemini"
-        else:
-            effective_provider = "openrouter"
+    # Routing rules (in priority order):
+    # 1. Any Gemini model ID (explicit or short alias) → ALWAYS Gemini API directly
+    # 2. No model specified + provider != "openrouter" → Gemini default
+    # 3. provider="gemini" forced with a non-Gemini model → error
+    # 4. Everything else → OpenRouter
+    if model is not None and _is_gemini_model(model):
+        effective_provider = "gemini"
+    elif model is None and provider != "openrouter":
+        effective_provider = "gemini"
+    elif provider == "gemini":
+        return (
+            f"Error: model '{model}' is not a Gemini model. "
+            "Use provider='auto' or provider='openrouter' for non-Gemini models."
+        )
     else:
-        effective_provider = provider
+        effective_provider = "openrouter"
 
     # --- Gemini path ---
     if effective_provider == "gemini":
