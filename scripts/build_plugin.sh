@@ -45,21 +45,6 @@ else
   sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$BUILD_DIR/.claude-plugin/plugin.json"
 fi
 
-# Generate .mcp.json — MCP server config (uses uvx to pull from PyPI)
-cat > "$BUILD_DIR/.mcp.json" <<'JSON'
-{
-  "mcpServers": {
-    "omni-ai-mcp": {
-      "command": "uvx",
-      "args": ["omni-ai-mcp"],
-      "env": {
-        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
-      }
-    }
-  }
-}
-JSON
 
 # Copy commands (from .claude/commands/ → commands/)
 mkdir -p "$BUILD_DIR/commands"

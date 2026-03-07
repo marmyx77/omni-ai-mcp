@@ -11,7 +11,7 @@ Features:
 - Security: sandboxing, secrets sanitization, cross-platform file locking
 """
 
-__version__ = "4.0.5"
+__version__ = "4.0.6"
 
 from .server import main
 

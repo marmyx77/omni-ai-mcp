@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.6] - 2026-03-07
+
+### Fixed
+- **Claude Code plugin**: `mcpServers` now inline in `.claude-plugin/plugin.json` instead of referencing `.mcp.json` (file reference not supported by Claude Code plugin validator)
+- **build_plugin.sh**: simplified — no longer generates `.mcp.json` since mcpServers is inline in `plugin.json`
+
+---
+
 ## [4.0.5] - 2026-03-07
 
 ### Fixed
