@@ -133,7 +133,7 @@ You are a critical thinker and "Devil's Advocate". Your job is to find problems,
 ## Statement to Challenge
 {statement}
 
-{f'## Additional Context\n{context}' if context else ''}
+{"## Additional Context\n" + context if context else ""}
 
 ## Required Output Structure
 
