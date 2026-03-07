@@ -57,5 +57,6 @@ internal-test/
 plugins/
 # Build artifacts
 *.dxt
+*.zip
 *.mcpb
 build_dxt/

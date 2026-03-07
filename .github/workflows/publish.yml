@@ -35,8 +35,10 @@ jobs:
           bash scripts/build_dxt.sh
         continue-on-error: true
 
-      - name: Upload .dxt as release asset
+      - name: Upload .dxt and .zip as release assets
         uses: softprops/action-gh-release@v2
         if: hashFiles('omni-ai-mcp-v*.dxt') != ''
         with:
-          files: omni-ai-mcp-v*.dxt
+          files: |
+            omni-ai-mcp-v*.dxt
+            omni-ai-mcp-v*.zip

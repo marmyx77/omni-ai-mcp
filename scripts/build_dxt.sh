@@ -58,9 +58,14 @@ else
   echo "Packed with zip (dxt CLI not found — install with: npm install -g @anthropic-ai/dxt)"
 fi
 
+# Also produce a .zip copy for Claude Desktop versions that show "upload zip" dialog
+ZIP_OUTPUT="omni-ai-mcp-v${VERSION}.zip"
+cp "$OUTPUT" "$ZIP_OUTPUT"
+
 # Cleanup
 rm -rf "$BUILD_DIR"
 
 echo ""
-echo "Done: $OUTPUT"
-echo "Install: double-click $OUTPUT in Finder, or drag into Claude Desktop"
+echo "Done:"
+echo "  $OUTPUT     — install by double-clicking (Claude Desktop with .dxt support)"
+echo "  $ZIP_OUTPUT — upload via 'Install from zip' dialog in Claude Desktop"
