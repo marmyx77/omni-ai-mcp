@@ -31,6 +31,15 @@ class TestIsGeminiModel:
     def test_deep_research_prefix(self):
         assert _is_gemini_model("deep-research-pro-preview") is True
 
+    def test_short_pro_is_gemini(self):
+        assert _is_gemini_model("pro") is True
+
+    def test_short_flash_is_gemini(self):
+        assert _is_gemini_model("flash") is True
+
+    def test_short_fast_is_gemini(self):
+        assert _is_gemini_model("fast") is True
+
     def test_openai_is_not_gemini(self):
         assert _is_gemini_model("openai/gpt-4o") is False
 

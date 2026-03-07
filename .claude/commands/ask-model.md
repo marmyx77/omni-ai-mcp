@@ -11,8 +11,8 @@ Use the ask_model tool with the extracted model and prompt.
 
 Model aliases:
 - "gpt-4o" or "gpt4o" → model="openai/gpt-4o"
-- "llama" or "llama3" → model="meta-llama/llama-3.3-70b"
-- "mistral" → model="mistral/mistral-large-latest"
+- "llama" or "llama3" → model="meta-llama/llama-3.3-70b-instruct"
+- "mistral" → model="mistralai/mistral-large-2512"
 - "claude" → model="anthropic/claude-3.5-sonnet"
 - "gemini" or "pro" → model="pro" (auto-resolved to Gemini Pro)
 - "flash" → model="flash"

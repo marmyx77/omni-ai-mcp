@@ -25,14 +25,14 @@ Your role is to intelligently delegate tasks to the most appropriate model and s
 - `openai/o3-mini` — strong reasoning
 
 ### Meta (via OpenRouter)
-- `meta-llama/llama-3.3-70b` — open source, fast, good general purpose
+- `meta-llama/llama-3.3-70b-instruct` — open source, fast, good general purpose
 
 ### Anthropic Claude (via OpenRouter)
 - `anthropic/claude-3.5-sonnet` — alternative Claude instance for second opinions
 - `anthropic/claude-3-haiku` — fast and cheap
 
 ### Mistral (via OpenRouter)
-- `mistral/mistral-large-latest` — strong at European languages and code
+- `mistralai/mistral-large-2512` — strong at European languages and code
 
 ## Workflow
 

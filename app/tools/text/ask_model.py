@@ -58,11 +58,14 @@ _GEMINI_PREFIXES = (
     "gemini-", "models/gemini-", "imagen-", "veo-", "deep-research"
 )
 
+# Short aliases that always map to Gemini
+_GEMINI_SHORT_NAMES = {"pro", "flash", "fast", "flash-lite"}
+
 
 def _is_gemini_model(model_id: str) -> bool:
     """Return True if model ID looks like a Gemini/Google model."""
     lower = model_id.lower()
-    return any(lower.startswith(p) for p in _GEMINI_PREFIXES)
+    return lower in _GEMINI_SHORT_NAMES or any(lower.startswith(p) for p in _GEMINI_PREFIXES)
 
 
 def _resolve_gemini_model(model_id: str) -> str:
