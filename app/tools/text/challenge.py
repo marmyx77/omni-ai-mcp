@@ -114,6 +114,7 @@ def challenge(
         return f"**Error**: {size_error['message']}"
 
     focus_instruction = FOCUS_INSTRUCTIONS.get(focus, FOCUS_INSTRUCTIONS["general"])
+    context_section = "## Additional Context\n" + context if context else ""
 
     prompt = f"""# CRITICAL ANALYSIS REQUEST
 
@@ -133,7 +134,7 @@ You are a critical thinker and "Devil's Advocate". Your job is to find problems,
 ## Statement to Challenge
 {statement}
 
-{"## Additional Context\n" + context if context else ""}
+{context_section}
 
 ## Required Output Structure
 
