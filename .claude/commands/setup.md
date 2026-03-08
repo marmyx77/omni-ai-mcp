@@ -1,36 +1,46 @@
 ---
-description: "Setup omni-ai-mcp: check API keys, uv install, and configure your environment"
+description: "Setup omni-ai-mcp: enter your API key in chat to configure everything automatically"
 ---
 
-Run the following checks and guide the user to complete setup of omni-ai-mcp.
+Guide the user through setting up omni-ai-mcp by asking for their API key directly in chat, then configuring it automatically. Follow these steps in order:
 
-**Step 1 — Check uv/uvx**
-Run `which uvx` to see if uvx is installed. If not installed, tell the user to run:
+**Step 1 — Check uv**
+Run `which uvx` silently. If uvx is NOT installed, tell the user:
+"First, install uv by running this in your terminal, then restart Claude Code:
 ```
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-Then restart their terminal.
+Then run /setup again."
+Stop here if uvx is missing.
 
-**Step 2 — Check GEMINI_API_KEY**
-Run `echo $GEMINI_API_KEY` to check if the key is set.
+**Step 2 — Ask for the Gemini API key**
+Check if GEMINI_API_KEY is already set by running `echo $GEMINI_API_KEY`.
 
-- If it IS set: confirm it's configured and show the first 8 characters followed by `...` for verification.
-- If it is NOT set: tell the user to add this line to their shell profile (`~/.zshrc` or `~/.bashrc`):
-  ```
-  export GEMINI_API_KEY=your_key_here
-  ```
-  And to get a key at: https://aistudio.google.com/app/apikey
-  Then run: `source ~/.zshrc` (or `source ~/.bashrc`)
+If NOT set, ask the user:
+"Please paste your **Gemini API key** here. Get one free at https://aistudio.google.com/app/apikey"
 
-**Step 3 — Check OPENROUTER_API_KEY (optional)**
-Run `echo $OPENROUTER_API_KEY`. Tell the user:
-- If set: OpenRouter is configured, 400+ models available.
-- If not set: OpenRouter is optional (enables GPT-4o, Llama, Mistral, etc.). To enable it later, get a key at https://openrouter.ai/keys and add `export OPENROUTER_API_KEY=your_key_here` to their shell profile.
+Wait for the user to reply with the key, then use it in Step 3.
+If it IS already set, use the existing value from the environment.
 
-**Step 4 — Verify MCP server**
-Run `claude mcp list` to check if `omni-ai-mcp` appears in the list.
-- If it appears: setup is complete! Tell the user to restart Claude Code to apply any env changes.
-- If it does NOT appear: the plugin may not have been installed yet. Tell the user to install `omni-ai-mcp-plugin-vX.Y.Z.zip` from https://github.com/marmyx77/omni-ai-mcp/releases using `/install-plugin <path-to-zip>`.
+**Step 3 — Register the MCP server with the key**
+Run this command with the key the user provided (replace KEY with the actual key):
+```
+claude mcp add omni-ai-mcp -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp
+```
+If the command fails because omni-ai-mcp already exists, run:
+```
+claude mcp remove omni-ai-mcp
+claude mcp add omni-ai-mcp -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp
+```
 
-**Summary**
-At the end, print a clear ✅ / ❌ checklist for: uv installed, GEMINI_API_KEY set, OPENROUTER_API_KEY set (optional), MCP server registered.
+**Step 4 — Ask for OpenRouter key (optional)**
+Ask: "Do you have an **OpenRouter API key**? (optional — enables 400+ models like GPT-4o, Llama, Mistral). Paste it here or type **skip**."
+
+If they provide a key (not "skip"), run:
+```
+claude mcp remove omni-ai-mcp
+claude mcp add omni-ai-mcp -e GEMINI_API_KEY=GEMINI_KEY -e OPENROUTER_API_KEY=OR_KEY -- uvx omni-ai-mcp
+```
+
+**Step 5 — Done**
+Tell the user: "✅ Setup complete! **Restart Claude Code** to activate the tools. After restart, you'll have access to 20 AI tools: /gemini, /gemini-research, /gemini-review, /cowork and more."
