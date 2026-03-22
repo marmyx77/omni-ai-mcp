@@ -1,11 +1,13 @@
 """
 Generate Image Tool
 
-Image generation using Gemini native image generation.
+Image generation and editing using Gemini native image generation.
+Supports text-to-image and image-to-image (editing/transformation).
 """
 
 import base64
-from typing import Optional
+import os
+from typing import Optional, List
 
 from ...tools.registry import tool
 from ...services import types, IMAGE_MODELS, client
@@ -17,91 +19,129 @@ GENERATE_IMAGE_SCHEMA = {
     "properties": {
         "prompt": {
             "type": "string",
-            "description": "Detailed image description. Be specific: describe scene, lighting, style, camera angle. Example: 'A photorealistic close-up portrait of an elderly ceramicist with warm lighting, captured with 85mm lens'"
+            "description": "Detailed image description or transformation instruction. Be specific: describe scene, lighting, style, camera angle. For editing: describe the desired change (e.g. 'Add a sunset sky to this photo')."
+        },
+        "input_images": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Optional list of input image paths for editing or transformation. Provide one or more existing images to edit, combine, or use as reference. Supports PNG, JPG, JPEG, WEBP."
         },
         "model": {
             "type": "string",
             "enum": ["pro", "flash"],
-            "description": "pro (default): Gemini 3 Pro - high quality, 4K, thinking mode. flash: Gemini 2.5 Flash - fast generation",
+            "description": "pro (default): Gemini 3 Pro - high quality, 4K, thinking mode. flash: Gemini 2.5 Flash - fast generation.",
             "default": "pro"
         },
         "aspect_ratio": {
             "type": "string",
             "enum": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-            "description": "Output aspect ratio",
+            "description": "Output aspect ratio.",
             "default": "1:1"
         },
         "image_size": {
             "type": "string",
             "enum": ["1K", "2K", "4K"],
-            "description": "Resolution (only for pro model). 1K=1024px, 2K=2048px, 4K=4096px",
+            "description": "Resolution (only for pro model). 1K=1024px, 2K=2048px, 4K=4096px.",
             "default": "2K"
         },
         "output_path": {
             "type": "string",
-            "description": "Path to save image (optional, returns base64 preview if not provided)"
+            "description": "Path to save image (optional, returns base64 preview if not provided)."
         }
     },
     "required": ["prompt"]
 }
 
 
+def _load_image_part(image_path: str) -> types.Part:
+    """Load an image file and return a Gemini Part."""
+    ext = os.path.splitext(image_path)[1].lower()
+    mime_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }
+    mime_type = mime_types.get(ext)
+    if not mime_type:
+        raise ValueError(f"Unsupported image format: {ext}. Supported: PNG, JPG, JPEG, WEBP")
+    with open(image_path, "rb") as f:
+        data = f.read()
+    return types.Part.from_bytes(data=data, mime_type=mime_type)
+
+
 @tool(
     name="gemini_generate_image",
-    description="Generate an image using Gemini native image generation. Defaults to Gemini 3 Pro for best quality. Use descriptive prompts (not keywords).",
+    description=(
+        "Generate or edit images using Gemini native image generation. "
+        "Text-to-image: provide a prompt only. "
+        "Image editing/transformation: provide input_images with a transformation prompt "
+        "(e.g. 'Add a sunset sky', 'Blend these two images', 'Make it look like oil painting'). "
+        "Excellent for infographics with real data, text rendering, and cartographic visualizations."
+    ),
     input_schema=GENERATE_IMAGE_SCHEMA,
     tags=["media", "generation"]
 )
 def generate_image(
     prompt: str,
+    input_images: Optional[List[str]] = None,
     model: str = "pro",
     aspect_ratio: str = "1:1",
     image_size: str = "2K",
     output_path: Optional[str] = None
 ) -> str:
     """
-    Generate image using Gemini native image generation.
-    Defaults to Gemini 3 Pro for best quality.
+    Generate or edit images using Gemini native image generation.
 
     Models:
     - pro: gemini-3-pro-image-preview (high quality, up to 4K, thinking mode) - DEFAULT
     - flash: gemini-2.5-flash-image (fast, 1024px max)
+
+    Modes:
+    - Text-to-image: prompt only
+    - Image editing: prompt + input_images (one or more images to edit/combine)
     """
     try:
-        # Select model - default to Pro for best quality
         model_id = IMAGE_MODELS.get(model, IMAGE_MODELS["pro"])
 
-        # Build config
         config_params = {
             "response_modalities": ["IMAGE", "TEXT"]
         }
 
-        # Add image config for aspect ratio and size
         image_config = {"aspect_ratio": aspect_ratio}
-
-        # image_size only supported by pro model
         if model == "pro" and image_size in ["1K", "2K", "4K"]:
             image_config["image_size"] = image_size
-
         config_params["image_config"] = types.ImageConfig(**image_config)
 
-        log_progress(f"Generating {image_size} image with {model_id}...")
+        # Build contents: images first (if any), then prompt text
+        if input_images:
+            contents = []
+            missing = [p for p in input_images if not os.path.exists(p)]
+            if missing:
+                return f"Error: Input image(s) not found: {', '.join(missing)}"
+            for img_path in input_images:
+                contents.append(_load_image_part(img_path))
+            contents.append(prompt)
+            mode = f"image editing ({len(input_images)} input image(s))"
+        else:
+            contents = prompt
+            mode = "text-to-image"
+
+        log_progress(f"Generating {image_size} image [{mode}] with {model_id}...")
 
         response = client.models.generate_content(
             model=model_id,
-            contents=prompt,
+            contents=contents,
             config=types.GenerateContentConfig(**config_params)
         )
 
         log_progress("Image generation completed")
 
-        # Look for image in response parts
         for part in response.candidates[0].content.parts:
             if hasattr(part, 'inline_data') and part.inline_data:
                 image_data = part.inline_data.data
                 mime_type = part.inline_data.mime_type
 
-                # Determine file extension
                 ext = ".png"
                 if "jpeg" in mime_type:
                     ext = ".jpg"
@@ -109,17 +149,25 @@ def generate_image(
                     ext = ".webp"
 
                 if output_path:
-                    # Ensure correct extension
                     if not output_path.endswith(ext):
                         output_path = output_path.rsplit('.', 1)[0] + ext
                     with open(output_path, 'wb') as f:
                         f.write(image_data)
-                    return f"Image saved to: {output_path}\nModel: {model_id}\nAspect ratio: {aspect_ratio}"
+                    return (
+                        f"Image saved to: {output_path}\n"
+                        f"Model: {model_id} | Mode: {mode}\n"
+                        f"Aspect ratio: {aspect_ratio}"
+                    )
                 else:
                     b64 = base64.b64encode(image_data).decode('utf-8')
-                    return f"Generated image ({mime_type})\nModel: {model_id}\nAspect ratio: {aspect_ratio}\nBase64 (first 100 chars): {b64[:100]}...\nTotal size: {len(b64)} characters"
+                    return (
+                        f"Generated image ({mime_type})\n"
+                        f"Model: {model_id} | Mode: {mode}\n"
+                        f"Aspect ratio: {aspect_ratio}\n"
+                        f"Base64 (first 100 chars): {b64[:100]}...\n"
+                        f"Total size: {len(b64)} characters"
+                    )
 
-        # If no image found, return text response if any
         text_parts = [p.text for p in response.candidates[0].content.parts if hasattr(p, 'text') and p.text]
         if text_parts:
             return f"No image generated. Model response: {' '.join(text_parts)}"

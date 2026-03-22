@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-03-22
+
+### Added
+- **`gemini_generate_image` — image editing**: new `input_images` parameter accepts one or more image paths; Gemini uses them as input for editing, transformation, or blending (e.g. "Add a sunset sky to this photo", "Blend these two images"). Inspired by nano-banana-pro from gemini-claude-skills.
+- **`gemini_analyze_image` — multiple images**: new `image_paths` parameter allows analyzing 2+ images in one call (compare screenshots, review a sequence, multi-image QA).
+- **`gemini_analyze_image` — media resolution**: new `media_resolution` parameter (`low`/`medium`/`high`) controls token cost vs. detail tradeoff for image analysis.
+
+---
+
 ## [4.0.6] - 2026-03-07
 
 ### Fixed
