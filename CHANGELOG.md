@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-03-22
+
+### Added
+- **`/gemini-illustrate` command**: reads a document and systematically generates infographics, diagrams, flowcharts, timelines, and charts to illustrate every complex concept. Produces a complete image set with suggested placement and markdown embed syntax.
+- **`/gemini-image` command**: visual director guidance for generating single images — teaches Claude how to write director-level prompts for infographics, technical diagrams, and data visualizations. Includes aspect ratio guide and prompt examples.
+- **`gemini_generate_image` tool description**: now explicitly documents the 5 unique strengths of Gemini 3 Pro image generation vs diffusion models (accurate data, readable text, technical diagrams, cartographic visualizations, document illustration).
+- **`/gemini` command**: updated with "context is everything" principle — instructs Claude to always include relevant files, errors, and prior attempts before calling `ask_gemini`.
+
+---
+
 ## [4.1.0] - 2026-03-22
 
 ### Added

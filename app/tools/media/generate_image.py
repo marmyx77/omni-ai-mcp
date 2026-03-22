@@ -73,11 +73,20 @@ def _load_image_part(image_path: str) -> types.Part:
 @tool(
     name="gemini_generate_image",
     description=(
-        "Generate or edit images using Gemini native image generation. "
-        "Text-to-image: provide a prompt only. "
-        "Image editing/transformation: provide input_images with a transformation prompt "
-        "(e.g. 'Add a sunset sky', 'Blend these two images', 'Make it look like oil painting'). "
-        "Excellent for infographics with real data, text rendering, and cartographic visualizations."
+        "Generate or edit images using Gemini 3 Pro native image generation. "
+        "This model has unique strengths over other image generators: "
+        "(1) INFOGRAPHICS WITH ACCURATE DATA — Gemini grounds generation in real-world knowledge, "
+        "so data labels, statistics, and facts inside the image are correct; "
+        "(2) READABLE TEXT — renders legible text, labels, callouts, and annotations inside images "
+        "(most diffusion models fail at this); "
+        "(3) TECHNICAL DIAGRAMS — architecture diagrams, flowcharts, system schemas, "
+        "process flows, network topologies; "
+        "(4) CARTOGRAPHIC VISUALIZATIONS — maps, geographic distributions, spatial data; "
+        "(5) DOCUMENT ILLUSTRATION — generate diagrams, timelines, and visual summaries "
+        "to accompany technical or business documents. "
+        "Use this tool proactively when a concept, process, or dataset would be clearer as a visual. "
+        "For image editing or transformation, pass input_images with a transformation instruction "
+        "(e.g. 'Add annotations to this diagram', 'Combine these two screenshots into a comparison')."
     ),
     input_schema=GENERATE_IMAGE_SCHEMA,
     tags=["media", "generation"]
