@@ -17,7 +17,7 @@ class Config:
     """
 
     # Version
-    version: str = "4.2.0"
+    version: str = "4.3.0"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
@@ -28,14 +28,14 @@ class Config:
         default_factory=lambda: os.environ.get("GEMINI_MODEL_PRO", "gemini-3.1-pro-preview")
     )
     model_flash: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH", "gemini-2.5-flash")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH", "gemini-3.5-flash")
     )
     # Image Models
     model_image_pro: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_PRO", "gemini-3.1-pro-image-preview")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_PRO", "gemini-3-pro-image")
     )
     model_image_flash: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_FLASH", "gemini-2.5-flash-image")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_FLASH", "gemini-3.1-flash-image")
     )
     # Video Models
     model_veo31: str = field(
@@ -55,14 +55,14 @@ class Config:
     )
     # TTS Models
     model_tts_flash: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_FLASH", "gemini-2.5-flash-preview-tts")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_FLASH", "gemini-3.1-flash-tts-preview")
     )
     model_tts_pro: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_PRO", "gemini-2.5-pro-preview-tts")
     )
     # Research Agent
     model_deep_research: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_DEEP_RESEARCH", "deep-research-pro-preview")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_DEEP_RESEARCH", "deep-research-preview-04-2026")
     )
 
     # OpenRouter (optional multi-provider support)

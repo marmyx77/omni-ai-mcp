@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-06-02
+
+### Changed
+- **Latest Gemini models across all categories** (verified live against the Gemini API model list):
+  - Text Flash default: `gemini-2.5-flash` → **`gemini-3.5-flash`** (latest stable flash; also the quota-fallback target).
+  - Text Flash-Lite registry default: `gemini-3.1-flash-lite-preview` → **`gemini-3.1-flash-lite`** (now stable).
+  - Image Pro default: `gemini-3.1-pro-image-preview` → **`gemini-3-pro-image`** (Nano Banana Pro). The old ID had been removed from the API and was flagged as deprecated.
+  - Image Flash default: `gemini-2.5-flash-image` → **`gemini-3.1-flash-image`** (Nano Banana 2).
+  - TTS Flash default: `gemini-2.5-flash-preview-tts` → **`gemini-3.1-flash-tts-preview`**.
+  - Text Pro (`gemini-3.1-pro-preview`), TTS Pro (`gemini-2.5-pro-preview-tts`) and Veo 3.1 unchanged — already the latest.
+
+### Fixed
+- **Deep Research agent was broken**: default `deep-research-pro-preview` returned `404 NOT_FOUND` from the API. Updated to **`deep-research-preview-04-2026`**, with `deep-research-pro-preview-12-2025` and `deep-research-max-preview-04-2026` as registry fallbacks.
+- **Model registry stale fallbacks**: image fallback `imagen-3.0-generate-002` (removed from API) → `imagen-4.0-generate-001`; added `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3-pro-image`, `gemini-3.1-flash-image`, `veo-3.1-lite-generate-preview` to the priority lists.
+
+### Notes
+- All new model IDs were validated against the live Gemini API (text generation, image metadata, and a TTS synthesis smoke test) before being set as defaults.
+- Every default remains overridable via the `GEMINI_MODEL_*` environment variables.
+
+---
+
 ## [4.2.0] - 2026-03-22
 
 ### Added

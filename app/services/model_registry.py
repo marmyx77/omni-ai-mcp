@@ -21,31 +21,39 @@ CATEGORY_PRIORITIES: Dict[str, List[str]] = {
         "gemini-2.5-pro-preview",
     ],
     "text_flash": [
+        "gemini-3.5-flash",
         "gemini-3-flash-preview",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
     ],
     "text_flash_lite": [
+        "gemini-3.1-flash-lite",
         "gemini-3.1-flash-lite-preview",
         "gemini-2.5-flash-lite",
         "gemini-2.0-flash-lite",
     ],
     "image": [
-        "gemini-3.1-pro-image-preview",
+        "gemini-3-pro-image",
         "gemini-3-pro-image-preview",
-        "imagen-3.0-generate-002",
+        "gemini-3.1-flash-image",
+        "gemini-2.5-flash-image",
+        "imagen-4.0-generate-001",
     ],
     "video": [
         "veo-3.1-generate-preview",
+        "veo-3.1-lite-generate-preview",
         "veo-3.0-generate-001",
         "veo-2.0-generate-001",
     ],
     "tts": [
+        "gemini-3.1-flash-tts-preview",
         "gemini-2.5-flash-preview-tts",
         "gemini-2.5-pro-preview-tts",
     ],
     "deep_research": [
-        "deep-research-pro-preview",
+        "deep-research-preview-04-2026",
+        "deep-research-pro-preview-12-2025",
+        "deep-research-max-preview-04-2026",
     ],
 }
 

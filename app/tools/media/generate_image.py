@@ -29,7 +29,7 @@ GENERATE_IMAGE_SCHEMA = {
         "model": {
             "type": "string",
             "enum": ["pro", "flash"],
-            "description": "pro (default): Gemini 3 Pro - high quality, 4K, thinking mode. flash: Gemini 2.5 Flash - fast generation.",
+            "description": "pro (default): Gemini 3 Pro Image (Nano Banana Pro) - high quality, 4K, thinking mode. flash: Gemini 3.1 Flash Image (Nano Banana 2) - fast generation.",
             "default": "pro"
         },
         "aspect_ratio": {
@@ -103,8 +103,8 @@ def generate_image(
     Generate or edit images using Gemini native image generation.
 
     Models:
-    - pro: gemini-3-pro-image-preview (high quality, up to 4K, thinking mode) - DEFAULT
-    - flash: gemini-2.5-flash-image (fast, 1024px max)
+    - pro: gemini-3-pro-image (Nano Banana Pro, high quality, up to 4K, thinking mode) - DEFAULT
+    - flash: gemini-3.1-flash-image (Nano Banana 2, fast generation)
 
     Modes:
     - Text-to-image: prompt only

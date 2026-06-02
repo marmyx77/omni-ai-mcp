@@ -17,8 +17,8 @@ Your role is to intelligently delegate tasks to the most appropriate model and s
 
 ### Gemini (Google)
 - `gemini-3.1-pro-preview` — best for complex reasoning, code, analysis
-- `gemini-2.5-flash` — fast and capable, good for most tasks
-- `gemini-2.5-flash-lite` — ultra-fast, simple tasks
+- `gemini-3.5-flash` — fast and capable, good for most tasks
+- `gemini-3.1-flash-lite` — ultra-fast, simple tasks
 
 ### OpenAI (via OpenRouter)
 - `openai/gpt-4o` — balanced, strong at instructions and code

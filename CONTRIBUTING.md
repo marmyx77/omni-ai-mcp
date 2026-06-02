@@ -177,7 +177,7 @@ def my_tool(param: str, optional: str = "default") -> str:
     """
     try:
         response = generate_with_fallback(
-            model_id="gemini-3-pro-preview",
+            model_id="gemini-3.1-pro-preview",
             contents=param,
             config=types.GenerateContentConfig(temperature=0.5),
             operation="my_tool"

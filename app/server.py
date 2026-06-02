@@ -399,7 +399,7 @@ def _ask_gemini(
 
     Args:
         prompt: The question or prompt
-        model: pro (Gemini 3 - best reasoning), flash (2.5 - balanced), fast (2.5 - high volume)
+        model: pro (Gemini 3.1 Pro - best reasoning), flash (Gemini 3.5 Flash - balanced), fast (Gemini 3.5 Flash - high volume)
         temperature: Temperature 0.0-1.0 (default 0.5)
         thinking_level: off, low (fast), or high (deep reasoning)
         include_thoughts: If true, returns thought summaries

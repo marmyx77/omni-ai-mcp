@@ -6,13 +6,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.0.1
+**Version:** 4.3.0
 **SDK:** google-genai >= 1.55.0 (Interactions API) + FastMCP + filelock
 **Architecture:** Modular package structure with SQLite persistence, dynamic model registry, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for future plans.
 
-## Architecture (v4.0.1)
+## Architecture (v4.3.0)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -108,18 +108,18 @@ omni-ai-mcp/
 | `gemini_code_review` | Code analysis | Gemini 3.1 Pro |
 | `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | Gemini 3.1 Pro |
 | `gemini_challenge` | Critical thinking / Devil's Advocate | Gemini 3.1 Pro |
-| `gemini_web_search` | Google-grounded search | Gemini 2.5 Flash |
+| `gemini_web_search` | Google-grounded search | Gemini 3.5 Flash |
 | `gemini_deep_research` | Autonomous multi-step research (5-60 min) | Deep Research Agent |
 | `gemini_list_conversations` | **NEW** List conversations with title, mode, activity | - |
 | `gemini_delete_conversation` | **NEW** Delete conversations by ID or title | - |
-| `gemini_file_search` | RAG document queries | Gemini 2.5 Flash |
+| `gemini_file_search` | RAG document queries | Gemini 3.5 Flash |
 | `gemini_create_file_store` | Create RAG stores | - |
 | `gemini_upload_file` | Upload to RAG stores | - |
 | `gemini_list_file_stores` | List RAG stores | - |
-| `gemini_analyze_image` | Image analysis (vision) | Gemini 2.5 Flash |
+| `gemini_analyze_image` | Image analysis (vision) | Gemini 3.5 Flash |
 | `gemini_generate_image` | Image generation | Gemini 3 Pro Image |
 | `gemini_generate_video` | Video generation (sync polling) | Veo 3.1 |
-| `gemini_text_to_speech` | TTS with 30 voices | Gemini 2.5 Flash TTS |
+| `gemini_text_to_speech` | TTS with 30 voices | Gemini 3.1 Flash TTS |
 | `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | Gemini 3.1 Pro |
 | `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | Gemini 3.1 Pro |
 
@@ -256,10 +256,10 @@ class MyToolInput(BaseModel):
 | `GEMINI_CONVERSATION_MAX_TURNS` | 50 | Max turns per thread |
 | `GEMINI_DISABLED_TOOLS` | - | Comma-separated tool names to disable |
 | `GEMINI_MODEL_PRO` | gemini-3.1-pro-preview | Override Pro model |
-| `GEMINI_MODEL_FLASH` | gemini-2.5-flash | Override Flash model |
-| `GEMINI_MODEL_IMAGE_PRO` | gemini-3.1-pro-image-preview | Override Image model |
+| `GEMINI_MODEL_FLASH` | gemini-3.5-flash | Override Flash model |
+| `GEMINI_MODEL_IMAGE_PRO` | gemini-3-pro-image | Override Image model |
 | `GEMINI_MODEL_VEO31` | veo-3.1-generate-preview | Override Veo 3.1 model |
-| `GEMINI_MODEL_TTS_FLASH` | gemini-2.5-flash-preview-tts | Override TTS model |
+| `GEMINI_MODEL_TTS_FLASH` | gemini-3.1-flash-tts-preview | Override TTS model |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
 | `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
 

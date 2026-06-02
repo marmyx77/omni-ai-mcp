@@ -40,7 +40,7 @@ ask_model("Write a poem", model="meta-llama/llama-3.3-70b-instruct")
 ask_model("Review this code", model="gemini-3.1-pro-preview")  # auto-routes to Gemini native API
 
 # If no Gemini key but OpenRouter key exists, Gemini models route via OpenRouter automatically
-ask_model("Summarize this", model="gemini-3-flash-preview")  # -> google/ prefix on OpenRouter
+ask_model("Summarize this", model="gemini-3.5-flash")  # -> google/ prefix on OpenRouter
 
 # Discover all available models
 gemini_list_models()
@@ -387,8 +387,8 @@ Levels: `off` (default), `low` (fast reasoning), `high` (deep analysis)
 | Alias | Resolved Model | Best For |
 |-------|----------------|----------|
 | `pro` | `gemini-3.1-pro-preview` | Complex reasoning, coding, analysis |
-| `flash` | `gemini-3-flash-preview` | Balanced speed/quality |
-| `fast` / `flash-lite` | `gemini-3.1-flash-lite-preview` | High-volume, simple tasks |
+| `flash` | `gemini-3.5-flash` | Balanced speed/quality |
+| `fast` / `flash-lite` | `gemini-3.1-flash-lite` | High-volume, simple tasks |
 
 Models are resolved dynamically at runtime — if a model is deprecated, the registry automatically falls back to the next available option.
 
@@ -414,8 +414,8 @@ All settings via environment variables:
 | `GEMINI_API_KEY` | **required** | Google Gemini API key |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables `ask_model` for 400+ models) |
 | `GEMINI_MODEL_PRO` | `gemini-3.1-pro-preview` | Override Pro text model |
-| `GEMINI_MODEL_FLASH` | `gemini-2.5-flash` | Static fallback model |
-| `GEMINI_MODEL_DEEP_RESEARCH` | `deep-research-pro-preview` | Override research agent |
+| `GEMINI_MODEL_FLASH` | `gemini-3.5-flash` | Static fallback model |
+| `GEMINI_MODEL_DEEP_RESEARCH` | `deep-research-preview-04-2026` | Override research agent |
 | `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Default OpenRouter model |
 | `GEMINI_SANDBOX_ROOT` | cwd | Root directory for file access |
 | `GEMINI_SANDBOX_ENABLED` | `true` | Enable path sandboxing |
