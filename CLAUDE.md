@@ -684,7 +684,13 @@ docker-compose --profile monitoring up -d
 
 ## Roadmap
 
-### v4.0.1 (Current) - Bug Fixes + CI
+### v4.3.0 (Current) - Latest Gemini Models
+- ✅ All model defaults aligned with latest Gemini IDs, verified live against the API
+- ✅ Flash → `gemini-3.5-flash`, Flash-Lite → `gemini-3.1-flash-lite`
+- ✅ Image → `gemini-3-pro-image` / `gemini-3.1-flash-image`, TTS → `gemini-3.1-flash-tts-preview`
+- ✅ Fixed deep research agent (`deep-research-pro-preview` 404 → `deep-research-preview-04-2026`)
+
+### v4.0.1 (Released) - Bug Fixes + CI
 - ✅ Python 3.11 SyntaxError fix in `challenge.py`
 - ✅ All 174 unit tests passing (stale imports fixed)
 - ✅ Model registry names corrected (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`)

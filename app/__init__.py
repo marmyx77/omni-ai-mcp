@@ -1,5 +1,5 @@
 """
-omni-ai-mcp v4.0.1
+omni-ai-mcp v4.3.0
 Multi-AI MCP bridge: Gemini + OpenRouter.
 
 Features:

@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version 4.0.1](https://img.shields.io/badge/version-4.0.1-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
+[![Version 4.3.0](https://img.shields.io/badge/version-4.3.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
 [![PyPI](https://img.shields.io/badge/PyPI-omni--ai--mcp-blue.svg)](https://pypi.org/project/omni-ai-mcp/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
@@ -18,7 +18,7 @@ Claude is exceptional at reasoning and code generation. But sometimes you need m
 - **Real-time web search** with Google grounding and source citations
 - **Autonomous deep research** that runs for minutes and produces structured reports from 40+ sources
 - **Video generation** with Veo 3.1 — the only MCP server with native audio video generation
-- **Image generation** with Imagen up to 4K resolution
+- **Image generation** with Gemini 3 Pro Image (Nano Banana Pro) up to 4K resolution
 - **Text-to-speech** with 30 natural voices and multi-speaker support
 - **RAG** for querying your own documents with citations
 - **Large codebase analysis** with Gemini's 1M token context window
@@ -29,9 +29,20 @@ omni-ai-mcp bridges Claude Code with Google Gemini and OpenRouter, enabling Clau
 
 ---
 
-## What's New in v4.0.0–4.0.1
+## What's New in v4.3.0
 
-### Multi-Provider: Gemini + OpenRouter
+All model defaults are now aligned with the latest Gemini IDs, verified live against the Gemini API:
+
+- **Text Flash** → `gemini-3.5-flash` · **Flash-Lite** → `gemini-3.1-flash-lite`
+- **Image** → `gemini-3-pro-image` (Nano Banana Pro) / `gemini-3.1-flash-image` (Nano Banana 2)
+- **TTS** → `gemini-3.1-flash-tts-preview`
+- **Deep Research** → `deep-research-preview-04-2026` (fixes the previous `404 NOT_FOUND` agent)
+
+Every default stays overridable via the `GEMINI_MODEL_*` environment variables.
+
+## Multi-Provider: Gemini + OpenRouter
+
+### Quick start
 
 ```python
 # Ask any of 400+ models — auto-routes from model name
@@ -627,6 +638,17 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 ---
 
 ## Changelog
+
+### v4.3.0
+- Updated all model defaults to the latest Gemini IDs (verified live): flash → `gemini-3.5-flash`, flash-lite → `gemini-3.1-flash-lite`, image → `gemini-3-pro-image` / `gemini-3.1-flash-image`, TTS → `gemini-3.1-flash-tts-preview`
+- Fixed deep research: `deep-research-pro-preview` returned `404 NOT_FOUND` → now `deep-research-preview-04-2026`
+- Registry fallbacks refreshed (`imagen-3.0` → `imagen-4.0`, added `veo-3.1-lite`)
+
+### v4.2.0
+- `/gemini-illustrate` and `/gemini-image` commands; richer `gemini_generate_image` tool description
+
+### v4.1.0
+- `gemini_generate_image` image editing (`input_images`); `gemini_analyze_image` multi-image + `media_resolution`
 
 ### v4.0.1
 - Fixed routing: Gemini models always use native API when key available (even if `provider=openrouter`)
