@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-06-12
+
+### Fixed
+- **Deep Research and cloud `ask_gemini` were broken by the Interactions API breaking change (May 2026).** The legacy `outputs` schema was removed; calls failed with `400 invalid_request: "The legacy Interactions API schema is no longer supported. Please upgrade your client SDK to Python >= 2.0.0 ... to adopt the new 'steps' schema."`
+  - **Root cause:** `requires-python = ">=3.9"` caused `uv`/`pip` to resolve `google-genai` to **1.x** (the last line supporting 3.9), which speaks the now-unsupported legacy Interactions schema. The failure was a dependency-resolution trap, not the call sites.
+  - **Fix:** bumped `requires-python` to **`>=3.10`** and `google-genai` to **`>=2.0.0`**, so the new SDK (2.8.0) and the `steps`/`output_text` schema are used.
+  - Response extraction in `deep_research` and `ask_gemini` (cloud) now uses a shared `extract_interaction_text()` helper that reads `output_text` / the `steps` array and still falls back to legacy `outputs`/`response` for resilience.
+
+### Changed
+- Minimum Python is now **3.10** (required by `google-genai >= 2.0.0`). Classifiers, ruff (`py310`) and mypy (`3.10`) updated accordingly.
+
+### Notes
+- Validated live against the Gemini API on Python 3.12 / google-genai 2.8.0: `models.generate_content` (the other 18 tools) unaffected; a model-based interaction returns `output_text` correctly (new schema: `output_text=True, steps=True, outputs=False`); the Deep Research agent (`deep-research-preview-04-2026`) starts without the legacy-schema error.
+- After upgrading, refresh the uvx-installed server so it reinstalls under Python ≥3.10: `uvx --refresh omni-ai-mcp` (or clear the uv cache), then restart Claude.
+
 ## [4.3.0] - 2026-06-02
 
 ### Changed

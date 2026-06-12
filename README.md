@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version 4.3.0](https://img.shields.io/badge/version-4.3.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
+[![Version 4.4.0](https://img.shields.io/badge/version-4.4.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
 [![PyPI](https://img.shields.io/badge/PyPI-omni--ai--mcp-blue.svg)](https://pypi.org/project/omni-ai-mcp/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
@@ -29,7 +29,7 @@ omni-ai-mcp bridges Claude Code with Google Gemini and OpenRouter, enabling Clau
 
 ---
 
-## What's New in v4.3.0
+## What's New in v4.4.0
 
 All model defaults are now aligned with the latest Gemini IDs, verified live against the Gemini API:
 
@@ -639,7 +639,7 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 
 ## Changelog
 
-### v4.3.0
+### v4.4.0
 - Updated all model defaults to the latest Gemini IDs (verified live): flash → `gemini-3.5-flash`, flash-lite → `gemini-3.1-flash-lite`, image → `gemini-3-pro-image` / `gemini-3.1-flash-image`, TTS → `gemini-3.1-flash-tts-preview`
 - Fixed deep research: `deep-research-pro-preview` returned `404 NOT_FOUND` → now `deep-research-preview-04-2026`
 - Registry fallbacks refreshed (`imagen-3.0` → `imagen-4.0`, added `veo-3.1-lite`)

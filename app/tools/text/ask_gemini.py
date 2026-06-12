@@ -308,13 +308,9 @@ def _ask_gemini_cloud(
         interaction = client.interactions.create(**create_kwargs)
 
         # For non-background interactions, response is immediate
-        response_text = ""
-        if hasattr(interaction, 'outputs') and interaction.outputs:
-            response_text = interaction.outputs[-1].text if hasattr(interaction.outputs[-1], 'text') else str(interaction.outputs[-1])
-        elif hasattr(interaction, 'response'):
-            response_text = interaction.response.text if hasattr(interaction.response, 'text') else str(interaction.response)
-        else:
-            response_text = str(interaction)
+        # (handles new 'steps' schema in google-genai >= 2.0 and legacy outputs)
+        from ..web.deep_research import extract_interaction_text
+        response_text = extract_interaction_text(interaction)
 
         # Index the conversation locally for listing
         thread_id = f"int_{interaction.id}"

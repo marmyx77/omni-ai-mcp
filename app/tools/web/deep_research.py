@@ -13,6 +13,42 @@ from ...services import client, is_available, get_error
 from ...core import config, log_progress
 
 
+def extract_interaction_text(interaction) -> str:
+    """Extract output text from an interaction across SDK schemas.
+
+    Handles the new 'steps' schema (google-genai >= 2.0, Interactions API revision
+    2026-05-20) via the `output_text` convenience property and the `steps` array,
+    and falls back to the legacy `outputs`/`response` shapes for older SDKs.
+    """
+    # New SDK 2.x convenience property
+    text = getattr(interaction, "output_text", None)
+    if text:
+        return text
+
+    # New 'steps' schema: collect model/agent output steps
+    steps = getattr(interaction, "steps", None)
+    if steps:
+        parts = []
+        for step in steps:
+            stype = getattr(step, "type", None)
+            if stype in ("model_output", "agent_output", "output", "text"):
+                content = getattr(step, "content", None) or getattr(step, "text", None)
+                if content:
+                    parts.append(content if isinstance(content, str) else str(content))
+        if parts:
+            return "\n".join(parts)
+
+    # Legacy fallbacks
+    outputs = getattr(interaction, "outputs", None)
+    if outputs:
+        last = outputs[-1]
+        return getattr(last, "text", None) or str(last)
+    resp = getattr(interaction, "response", None)
+    if resp is not None:
+        return getattr(resp, "text", None) or str(resp)
+    return str(interaction)
+
+
 # Deep Research agent configuration (from config, overridable via GEMINI_MODEL_DEEP_RESEARCH)
 DEEP_RESEARCH_AGENT = config.model_deep_research
 
@@ -143,18 +179,9 @@ def deep_research(
             # Wait before next poll
             time.sleep(POLL_INTERVAL_SECONDS)
 
-        # Extract the research report
-        if hasattr(interaction, 'outputs') and interaction.outputs:
-            # Get the last output (final report)
-            final_output = interaction.outputs[-1]
-
-            # Extract text content
-            if hasattr(final_output, 'text'):
-                report = final_output.text
-            else:
-                report = str(final_output)
-
-            # Add metadata
+        # Extract the research report (handles new 'steps' schema + legacy)
+        report = extract_interaction_text(interaction)
+        if report and report != str(interaction):
             elapsed_mins = round((time.time() - start_time) / 60, 1)
             result = f"# Deep Research Report\n\n"
             result += f"**Query:** {query}\n"
@@ -162,7 +189,6 @@ def deep_research(
             result += "---\n\n"
             result += report
             result += f"\n\n---\n*interaction_id: {interaction_id}*"
-
             return result
         else:
             return f"Research completed but no output found. ID: {interaction_id}"
