@@ -20,23 +20,33 @@ def extract_interaction_text(interaction) -> str:
     2026-05-20) via the `output_text` convenience property and the `steps` array,
     and falls back to the legacy `outputs`/`response` shapes for older SDKs.
     """
-    # New SDK 2.x convenience property
-    text = getattr(interaction, "output_text", None)
-    if text:
-        return text
-
-    # New 'steps' schema: collect model/agent output steps
+    # New 'steps' schema: concatenate the text of ALL model output steps.
+    # Do NOT trust `output_text` first: on multi-step interactions (deep research)
+    # it only carries the LAST chunk (observed 2026-07-05: a 48k-char report
+    # truncated to its final 23k). Steps' content is a list of typed items
+    # (TextContent/ImageContent): collect only the .text ones, in order.
     steps = getattr(interaction, "steps", None)
     if steps:
         parts = []
         for step in steps:
             stype = getattr(step, "type", None)
-            if stype in ("model_output", "agent_output", "output", "text"):
-                content = getattr(step, "content", None) or getattr(step, "text", None)
-                if content:
-                    parts.append(content if isinstance(content, str) else str(content))
+            if stype not in ("model_output", "agent_output", "output", "text"):
+                continue
+            content = getattr(step, "content", None) or getattr(step, "text", None)
+            if isinstance(content, str):
+                parts.append(content)
+                continue
+            for item in (content or []):
+                item_text = getattr(item, "text", None)
+                if item_text:
+                    parts.append(item_text)
         if parts:
-            return "\n".join(parts)
+            return "".join(parts)
+
+    # SDK 2.x convenience property (fallback: last output chunk only)
+    text = getattr(interaction, "output_text", None)
+    if text:
+        return text
 
     # Legacy fallbacks
     outputs = getattr(interaction, "outputs", None)
@@ -199,7 +209,7 @@ def deep_research(
             return (
                 "Error: Interactions API not available.\n"
                 "The google-genai SDK version may not support the Interactions API yet.\n"
-                "Required: google-genai >= 1.55.0"
+                "Required: google-genai >= 2.0.0"
             )
         raise
     except Exception as e:

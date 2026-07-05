@@ -279,7 +279,7 @@ def _ask_gemini_cloud(
 
     # Check if Interactions API is available
     if not hasattr(client, 'interactions'):
-        return "**Error**: Cloud mode requires google-genai >= 1.55.0 with Interactions API support."
+        return "**Error**: Cloud mode requires google-genai >= 2.0.0 with Interactions API support."
 
     # Expand @file references
     original_prompt = prompt
@@ -338,5 +338,5 @@ def _ask_gemini_cloud(
     except Exception as e:
         error_msg = str(e)
         if "interactions" in error_msg.lower():
-            return f"**Error**: Interactions API not available. Ensure google-genai >= 1.55.0 is installed.\n\nDetails: {error_msg}"
+            return f"**Error**: Interactions API not available. Ensure google-genai >= 2.0.0 is installed.\n\nDetails: {error_msg}"
         return f"**Error**: Cloud mode failed: {error_msg}"

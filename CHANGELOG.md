@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.1] - 2026-07-05
+
+### Fixed
+- Stale minimum-version references to `google-genai >= 1.55.0` in error messages (`deep_research.py`, cloud `ask_gemini.py`) and in the README manual-install command, out of sync with the actual `>=2.0.0` requirement introduced in v4.4.0. Following the stale README install line could resolve google-genai 1.x and reproduce the exact legacy-schema 400 error that v4.4.0 fixed.
+- `extract_interaction_text()` truncated multi-step Deep Research reports: it trusted `output_text` first, which on the `steps` schema only carries the final chunk (a 48k-char report came back as its last 23k). It now concatenates the `.text` of every typed content item (TextContent) across all `model_output` steps, in order, ignoring non-text items (ImageContent), and falls back to `output_text` only when no steps text is found.
+
 ## [4.4.0] - 2026-06-12
 
 ### Fixed

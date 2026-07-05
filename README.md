@@ -187,7 +187,7 @@ claude mcp list
 ### Manual Install
 
 ```bash
-pip install 'mcp[cli]>=1.0.0' 'google-genai>=1.55.0' pydantic defusedxml filelock
+pip install 'mcp[cli]>=1.0.0' 'google-genai>=2.0.0' pydantic defusedxml filelock
 
 mkdir -p ~/.claude-mcp-servers/omni-ai-mcp
 cp -r app/ run.py pyproject.toml ~/.claude-mcp-servers/omni-ai-mcp/
