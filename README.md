@@ -518,7 +518,7 @@ omni-ai-mcp/
 |   |   +-- rag/               # file_store, file_search, upload
 |   +-- schemas/               # Pydantic v2 validation
 |   +-- utils/                 # @file expansion, token estimation
-+-- tests/                     # 174+ tests (unit + integration)
++-- tests/                     # Test suite (unit + integration; counts: see CLAUDE.md)
 +-- .claude/
 |   +-- commands/              # Slash commands
 |   +-- agents/                # Subagents

@@ -39,3 +39,23 @@ jobs:
           python -c "from app.core.config import config; print(f'v{config.version}: model_pro={config.model_pro}')"
           python -c "from app.services.model_registry import model_registry; print('ModelRegistry OK')"
           python -c "from app.services.openrouter import openrouter_client; print('OpenRouterClient OK')"
+
+  docs-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Makes origin/main resolvable for git-ref checks (checkout is shallow).
+      - name: Fetch main for virgilio
+        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: virgilio — reality gate (BLOCKING)
+        run: node virgilio/bin/cli.mjs check --config virgilio.config.json
+
+      # Prove-it-bites: CI itself verifies the gate isn't blind.
+      - name: virgilio — bite (prove-it-bites)
+        run: node virgilio/bin/cli.mjs bite

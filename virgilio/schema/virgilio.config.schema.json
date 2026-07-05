@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://virgilio.skill/config.schema.json",
+  "title": "virgilio.config.json",
+  "description": "Config for virgilio's reality-gate. A reference for editors/humans; the authoritative (zero-dep) validation lives in core/config.mjs.",
+  "type": "object",
+  "required": ["adapters", "docsGlobs"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "_README": { "type": "string" },
+    "root": { "type": "string", "default": "." },
+    "docsGlobs": { "type": "array", "items": { "type": "string" }, "description": "globs of the markdown files to inspect (e.g. 'docs/**/*.md')" },
+    "adapters": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9-]+$" }, "description": "adapters to load (sandboxed: kebab-case names only, from adapters/)" },
+    "prodBranch": { "type": "string", "default": "main" },
+    "prodRef": { "type": "string", "default": "origin/main" },
+    "allowMarker": { "description": "marker (string or list) that exempts a line from the claim checks; 'docs-check:allow-status-mention' is always included", "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+
+    "factKeys": { "type": "array", "items": { "type": "string" }, "description": "declared fact keys; a marker with a key not listed here = red" },
+    "reality": {
+      "type": "object",
+      "properties": {
+        "counts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["fact", "owner", "adapter", "capability"],
+            "properties": {
+              "fact": { "type": "string" },
+              "owner": { "type": "string", "description": "the doc that owns the <!--fact:KEY-->N<!--/fact--> marker" },
+              "adapter": { "type": "string" },
+              "capability": { "type": "string" },
+              "query": { "type": "object" }
+            }
+          }
+        }
+      }
+    },
+
+    "statusDocs": { "type": "array", "items": { "type": "string" }, "description": "plan/status docs that MUST carry the doc-status line" },
+    "statusVocabulary": { "type": "array", "items": { "type": "string" }, "description": "the closed status vocabulary for doc-status values" },
+
+    "historicalPaths": { "type": "array", "items": { "type": "string" }, "description": "path prefixes exempt from staleness (e.g. 'docs/archive/')" },
+    "historicalSections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "fromHeadingRegex"],
+        "properties": { "file": { "type": "string" }, "fromHeadingRegex": { "type": "string", "description": "from this heading downward the section is historical (e.g. '^##\\\\s+Handoff log')" } }
+      }
+    },
+
+    "guards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "when", "forbidClaims"],
+        "properties": {
+          "id": { "type": "string" },
+          "polarity": { "type": "string", "enum": ["doc-behind"], "description": "in v0 only doc-behind; doc-ahead is deferred to the audit §9" },
+          "when": {
+            "type": "object",
+            "required": ["adapter", "capability"],
+            "properties": { "adapter": { "type": "string" }, "capability": { "type": "string" }, "query": { "type": "object" }, "equals": { "description": "the reality value expected to trigger the guard", "default": true } }
+          },
+          "scope": { "type": "object", "properties": { "contextPattern": { "type": "string", "description": "regex: the guard only fires on matching lines (reduces false positives)" } } },
+          "forbidClaims": { "type": "array", "items": { "type": "object", "required": ["pattern"], "properties": { "pattern": { "type": "string" }, "flags": { "type": "string" }, "label": { "type": "string" } } } },
+          "message": { "type": "string" }
+        }
+      }
+    },
+
+    "forbiddenPhrases": {
+      "type": "array",
+      "items": { "type": "object", "required": ["pattern"], "properties": { "pattern": { "type": "string" }, "flags": { "type": "string" }, "reason": { "type": "string" }, "since": { "type": "string" } } }
+    },
+
+    "links": { "type": "object", "properties": { "checkRelativeIntraRepo": { "type": "boolean", "default": true } } },
+
+    "audit": {
+      "type": "object",
+      "properties": {
+        "probes": {
+          "type": "array",
+          "items": { "type": "object", "required": ["id", "adapter", "capability"], "properties": { "id": { "type": "string" }, "adapter": { "type": "string" }, "capability": { "type": "string" }, "query": { "type": "object" } } }
+        }
+      }
+    }
+  }
+}

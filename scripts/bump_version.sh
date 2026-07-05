@@ -77,6 +77,14 @@ sed "${SED_INPLACE[@]}" \
   manifest.json
 echo "  [ok] manifest.json"
 
+# 5. CLAUDE.md — version header + Architecture heading (drift observed 2026-07-05:
+#    the header lagged one release behind because it wasn't in this script)
+sed "${SED_INPLACE[@]}" \
+  -e "s/^\*\*Version:\*\* $CURRENT_VERSION/**Version:** $NEW_VERSION/" \
+  -e "s/^## Architecture (v$CURRENT_VERSION)/## Architecture (v$NEW_VERSION)/" \
+  CLAUDE.md
+echo "  [ok] CLAUDE.md"
+
 echo ""
 echo "All files updated to v$NEW_VERSION."
 echo ""

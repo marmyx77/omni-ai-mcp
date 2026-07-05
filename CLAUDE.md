@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+<!-- doc-status: current | updated: 2026-07-05 -->
+
 This file provides context to Claude Code when working with this repository.
 
 ## Project Overview
@@ -7,10 +9,10 @@ This file provides context to Claude Code when working with this repository.
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
 **Version:** 4.5.0
-**SDK:** google-genai >= 1.55.0 (Interactions API) + FastMCP + filelock
+**SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + FastMCP + filelock
 **Architecture:** Modular package structure with SQLite persistence, dynamic model registry, and multi-provider routing
 
-See also: [CHANGELOG.md](CHANGELOG.md) for release notes, [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for future plans.
+See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
 ## Architecture (v4.5.0)
 
@@ -77,7 +79,7 @@ omni-ai-mcp/
 │   └── middleware/          # Request processing
 │       └── __init__.py
 │
-└── tests/                   # Test suite (174+ tests)
+└── tests/                   # Test suite (file counts: see «Test Structure» below)
     ├── conftest.py          # Pytest fixtures
     ├── unit/                # Unit tests
     └── integration/         # Integration tests
@@ -520,7 +522,9 @@ python3 -m pytest tests/unit/test_safe_write.py -v
 python3 -m pytest tests/ --cov=app --cov-report=html
 ```
 
-### Test Structure (174+ tests)
+### Test Structure
+
+Test files: <!--fact:unit-test-files-->10<!--/fact--> unit + <!--fact:integration-test-files-->5<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -540,6 +544,15 @@ tests/
     ├── test_security_v3.py        # Security features (26 tests)
     └── real_outputs/              # Live MCP tool call outputs
 ```
+
+## Documentation governance (virgilio)
+
+- **Before every commit** that touches a doc/plan: `node virgilio/bin/cli.mjs check --config virgilio.config.json` must be **green**. Full rulebook: [DOC_GOVERNANCE.md](DOC_GOVERNANCE.md).
+- **Release status** is never declared "released/published" without the tag on `origin/main` and a green CI run. PyPI/`.dxt` state is external tier (no probe configured): if you can't verify it, write "not verifiable", never "verified".
+- **End of milestone / pre-release / suspected drift**: run the `virgilio/modes/audit.md` playbook (§9, 3 axes vs. reality). Standing §9 items: the MCP tool count (20), roadmap «Planned» sections vs. shipped versions, PyPI publication vs. "released" claims.
+- **Every false claim you find** that's cleanly mechanizable → a new rule in `virgilio.config.json` + a bite fixture. One-offs stay with the human audit (proportionality).
+- **Per-fact SSOT**: a count/status/version lives in **exactly one** owner doc (map in [DOC_GOVERNANCE.md](DOC_GOVERNANCE.md) §2); elsewhere, LINK to it. Never copy it.
+- **Status flip = Definition of Done**: if a task closes a phase, updating the status is **inside** the task: this file's `doc-status` date + Roadmap section (CI-enforced), and `DEVELOPMENT_ROADMAP.md` («Current Status», Handoff log — internal, git-ignored, checked locally only).
 
 ## Release Process
 
@@ -693,7 +706,7 @@ docker-compose --profile monitoring up -d
 - ✅ All model defaults aligned with latest Gemini IDs, verified live against the API
 - ✅ Flash → `gemini-3.5-flash`, Flash-Lite → `gemini-3.1-flash-lite`
 - ✅ Image → `gemini-3-pro-image` / `gemini-3.1-flash-image`, TTS → `gemini-3.1-flash-tts-preview`
-- ✅ Fixed deep research agent (`deep-research-pro-preview` 404 → `deep-research-preview-04-2026`)
+- ✅ Fixed deep research agent (`deep-research-pro-preview` 404 → `deep-research-preview-04-2026`) <!-- virgilio:allow-status-mention (historical mention of the removed model) -->
 
 ### v4.0.1 (Released) - Bug Fixes + CI
 - ✅ Python 3.11 SyntaxError fix in `challenge.py`
@@ -709,10 +722,10 @@ docker-compose --profile monitoring up -d
 - ✅ **PyPI**: `pip install omni-ai-mcp` works
 - ✅ **GitHub Actions**: CI (Python 3.11/3.12) + Trusted Publishing to PyPI
 
-### v4.1.0 (Planned)
+### Next minor (Planned)
 - Streaming responses for `ask_gemini`
 - Multi-turn conversation support for `ask_model`
 - defusedxml parser replacing regex XML parsing
 - Cost tracking per session
 
-Full roadmap: [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md)
+Full roadmap: `DEVELOPMENT_ROADMAP.md` (internal, git-ignored)

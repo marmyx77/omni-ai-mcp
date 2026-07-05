@@ -60,3 +60,6 @@ plugins/
 *.zip
 *.mcpb
 build_dxt/
+
+# virgilio bite cache (generated)
+virgilio/.bite-cache.json

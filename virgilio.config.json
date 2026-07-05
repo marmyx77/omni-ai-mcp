@@ -1,0 +1,68 @@
+{
+  "$schema": "./virgilio/schema/virgilio.config.schema.json",
+  "_README": "virgilio's config: the SSOT for what the docs-reality gate enforces. Changing the repo's reality without updating this file (or vice versa) makes the gate fail — that's intentional. Notes: (1) CHANGELOG.md is fully historical; (2) README from '## Changelog' and DEVELOPMENT_ROADMAP from '## Version History' are historical zones (the short Contributing/License sections after README's Changelog are accepted as exempt — no status claims live there); (3) no guards: the release flow is tag→PyPI (external tier), not probeable via remote-tracking refs — deploy honesty is audited in §9; (4) the MCP tool count (20) is NOT mechanized: tool files (17) ≠ @mcp.tool registrations (20), and a wrong-proxy rule is worse than none — it stays with the §9 audit; (5) DEVELOPMENT_ROADMAP.md is git-ignored ('internal development files'): it stays in docsGlobs/historicalSections for LOCAL coverage (in CI it simply doesn't exist → fewer files scanned), but it must NOT be in statusDocs (a missing statusDoc is a Finding → red CI). The CI-enforced status doc is CLAUDE.md.",
+
+  "root": ".",
+  "docsGlobs": [
+    "CLAUDE.md",
+    "README.md",
+    "CHANGELOG.md",
+    "DEVELOPMENT_ROADMAP.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "DOC_GOVERNANCE.md"
+  ],
+  "adapters": ["filesystem", "git"],
+  "prodBranch": "main",
+  "prodRef": "origin/main",
+
+  "factKeys": ["unit-test-files", "integration-test-files"],
+  "reality": {
+    "counts": [
+      {
+        "fact": "unit-test-files",
+        "owner": "CLAUDE.md",
+        "adapter": "filesystem",
+        "capability": "count",
+        "query": { "glob": "tests/unit/test_*.py" }
+      },
+      {
+        "fact": "integration-test-files",
+        "owner": "CLAUDE.md",
+        "adapter": "filesystem",
+        "capability": "count",
+        "query": { "glob": "tests/integration/test_*.py" }
+      }
+    ]
+  },
+
+  "statusDocs": ["CLAUDE.md"],
+  "statusVocabulary": ["current", "draft", "superseded"],
+
+  "historicalPaths": ["CHANGELOG.md"],
+  "historicalSections": [
+    { "file": "DEVELOPMENT_ROADMAP.md", "fromHeadingRegex": "^##\\s+Version History" },
+    { "file": "README.md", "fromHeadingRegex": "^##\\s+Changelog" }
+  ],
+
+  "guards": [],
+
+  "forbiddenPhrases": [
+    {
+      "pattern": "google-genai\\s*>=\\s*1\\.",
+      "flags": "i",
+      "reason": "the SDK requirement is google-genai>=2.0.0 since v4.4.0 (Interactions 'steps' schema); citing 1.x as the requirement reproduces the legacy-schema 400 (drift observed twice: v4.4.1 fix + CLAUDE.md header found stale on 2026-07-05)",
+      "since": "2026-06-12"
+    },
+    {
+      "pattern": "deep-research-pro-preview",
+      "flags": "i",
+      "reason": "model removed upstream (404), replaced by deep-research-preview-04-2026 in v4.4.0; citing it as current is stale. Allowed only in historical zones or with the allow-marker",
+      "since": "2026-06-12"
+    }
+  ],
+
+  "links": { "checkRelativeIntraRepo": true },
+
+  "audit": { "probes": [] }
+}

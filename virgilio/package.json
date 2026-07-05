@@ -1,0 +1,16 @@
+{
+  "name": "virgilio",
+  "version": "0.1.0",
+  "description": "Reality-driven documentation/status governance gate — a stack-agnostic core + pluggable adapters. The guide that lays and maintains a project's foundations of truth.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "bin": { "virgilio": "./bin/cli.mjs" },
+  "scripts": {
+    "check": "node bin/cli.mjs check",
+    "report": "node bin/cli.mjs report",
+    "bite": "node bin/cli.mjs bite",
+    "bite:all": "node bin/cli.mjs bite --all",
+    "test": "node test/portability.test.mjs && node test/playbook-cli.test.mjs && node bin/cli.mjs bite --all"
+  },
+  "dependencies": {}
+}
