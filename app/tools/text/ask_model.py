@@ -25,7 +25,7 @@ ASK_MODEL_SCHEMA = {
             "description": (
                 "Model ID to use. Gemini examples: 'gemini-3.1-pro-preview', 'gemini-2.5-flash'. "
                 "OpenRouter examples: 'openai/gpt-4o', 'meta-llama/llama-3.3-70b', "
-                "'anthropic/claude-3.5-sonnet'. "
+                "'anthropic/claude-3.5-sonnet', 'perplexity/sonar-pro' (web search with citations). "
                 "Use gemini_list_models to see all available options."
             )
         },

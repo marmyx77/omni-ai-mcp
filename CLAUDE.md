@@ -6,13 +6,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.4.0
+**Version:** 4.5.0
 **SDK:** google-genai >= 1.55.0 (Interactions API) + FastMCP + filelock
 **Architecture:** Modular package structure with SQLite persistence, dynamic model registry, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for future plans.
 
-## Architecture (v4.4.0)
+## Architecture (v4.5.0)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -262,6 +262,7 @@ class MyToolInput(BaseModel):
 | `GEMINI_MODEL_TTS_FLASH` | gemini-3.1-flash-tts-preview | Override TTS model |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
 | `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
+| `OPENROUTER_TIMEOUT` | 120 | OpenRouter generation timeout in seconds (search models need headroom) |
 
 ## Security Features
 
@@ -684,7 +685,11 @@ docker-compose --profile monitoring up -d
 
 ## Roadmap
 
-### v4.4.0 (Current) - Latest Gemini Models
+### v4.5.0 (Current) - OpenRouter Citations + Timeout
+- ✅ `ask_model` appends a **Sources** section from OpenRouter citations (Perplexity `citations` + OpenAI-style `url_citation` annotations)
+- ✅ `OPENROUTER_TIMEOUT` env var (default 120s, was hardcoded 30s) — enables `perplexity/sonar-*` search models
+
+### v4.4.0 (Released) - Latest Gemini Models
 - ✅ All model defaults aligned with latest Gemini IDs, verified live against the API
 - ✅ Flash → `gemini-3.5-flash`, Flash-Lite → `gemini-3.1-flash-lite`
 - ✅ Image → `gemini-3-pro-image` / `gemini-3.1-flash-image`, TTS → `gemini-3.1-flash-tts-preview`

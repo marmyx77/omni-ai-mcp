@@ -17,7 +17,7 @@ class Config:
     """
 
     # Version
-    version: str = "4.4.1"
+    version: str = "4.5.0"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
@@ -71,6 +71,9 @@ class Config:
     )
     openrouter_default_model: str = field(
         default_factory=lambda: os.environ.get("OPENROUTER_DEFAULT_MODEL", "openai/gpt-4o")
+    )
+    openrouter_timeout: int = field(
+        default_factory=lambda: int(os.environ.get("OPENROUTER_TIMEOUT", "120"))
     )
 
     # Conversation Memory

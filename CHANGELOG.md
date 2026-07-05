@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2026-07-05
+
+### Added
+- **Citation support for OpenRouter responses.** `ask_model` now appends a numbered `**Sources:**` section when the upstream model returns citations. Supports both the top-level `citations` array (Perplexity `sonar` models) and OpenAI-style `url_citation` message annotations; URLs are deduplicated preserving order. Previously citations were silently discarded — Perplexity answers arrived without their sources.
+- **`OPENROUTER_TIMEOUT` environment variable** (default `120` seconds, previously hardcoded to 30). Search-augmented models like `perplexity/sonar-reasoning-pro` and `perplexity/sonar-deep-research` routinely exceed 30 seconds; raise the value for long research queries. The `/models` catalog endpoint keeps a fixed 30-second timeout so a long generation timeout never slows model discovery.
+- `perplexity/sonar-pro` added to the `ask_model` schema examples for discoverability.
+
 ## [4.4.1] - 2026-07-05
 
 ### Fixed

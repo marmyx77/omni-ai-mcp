@@ -428,6 +428,7 @@ All settings via environment variables:
 | `GEMINI_MODEL_FLASH` | `gemini-3.5-flash` | Static fallback model |
 | `GEMINI_MODEL_DEEP_RESEARCH` | `deep-research-preview-04-2026` | Override research agent |
 | `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Default OpenRouter model |
+| `OPENROUTER_TIMEOUT` | `120` | OpenRouter generation timeout in seconds (raise for search models like `perplexity/sonar-deep-research`) |
 | `GEMINI_SANDBOX_ROOT` | cwd | Root directory for file access |
 | `GEMINI_SANDBOX_ENABLED` | `true` | Enable path sandboxing |
 | `GEMINI_MAX_FILE_SIZE` | `102400` | Max file size in bytes (100KB) |

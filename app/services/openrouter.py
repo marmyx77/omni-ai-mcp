@@ -16,6 +16,43 @@ from ..core import config, log_progress
 
 _BASE_URL = "https://openrouter.ai/api/v1"
 _MODELS_CACHE_TTL = 3600  # 1 hour
+_DEFAULT_TIMEOUT = 120  # seconds — search models (e.g. perplexity/sonar-*) need headroom
+_METADATA_TIMEOUT = 30  # seconds — fast endpoints like /models
+
+
+def _extract_citations(result: Dict[str, Any]) -> List[str]:
+    """
+    Collect citation URLs from an OpenRouter chat completion response.
+
+    Supports both formats:
+    - Top-level "citations" list of URL strings (Perplexity sonar models)
+    - OpenAI-style "annotations" with url_citation objects in the message
+
+    Returns:
+        Deduplicated list of URLs, original order preserved
+    """
+    top_level = [
+        url for url in (result.get("citations") or [])
+        if isinstance(url, str) and url
+    ]
+
+    choices = result.get("choices") or []
+    message = (choices[0].get("message") or {}) if choices else {}
+    annotated = [
+        (ann.get("url_citation") or {}).get("url", "")
+        for ann in (message.get("annotations") or [])
+        if isinstance(ann, dict) and ann.get("type") == "url_citation"
+    ]
+
+    return list(dict.fromkeys(url for url in top_level + annotated if url))
+
+
+def _append_sources(text: str, citations: List[str]) -> str:
+    """Return text with a numbered Sources section appended (unchanged if no citations)."""
+    if not citations:
+        return text
+    sources = "\n".join(f"{i}. {url}" for i, url in enumerate(citations, 1))
+    return f"{text}\n\n---\n**Sources:**\n{sources}"
 
 
 class OpenRouterClient:
@@ -25,9 +62,15 @@ class OpenRouterClient:
     All methods silently return empty results when the API key is not configured.
     """
 
-    def __init__(self, api_key: str, default_model: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        default_model: str,
+        timeout: int = _DEFAULT_TIMEOUT,
+    ) -> None:
         self._api_key = api_key
         self._default_model = default_model
+        self._timeout = timeout
         self._models_cache: Optional[List[Dict[str, Any]]] = None
         self._cache_timestamp: float = 0.0
 
@@ -36,7 +79,12 @@ class OpenRouterClient:
         """True if an API key is configured."""
         return bool(self._api_key)
 
-    def _request(self, path: str, payload: Optional[Dict] = None) -> Any:
+    def _request(
+        self,
+        path: str,
+        payload: Optional[Dict] = None,
+        timeout: Optional[int] = None,
+    ) -> Any:
         """Perform a JSON HTTP request to OpenRouter."""
         url = f"{_BASE_URL}{path}"
         headers = {
@@ -48,7 +96,7 @@ class OpenRouterClient:
         data = json.dumps(payload).encode() if payload else None
         req = Request(url, data=data, headers=headers, method="POST" if payload else "GET")
 
-        with urlopen(req, timeout=30) as resp:
+        with urlopen(req, timeout=timeout or self._timeout) as resp:
             return json.loads(resp.read().decode())
 
     def list_models(self) -> List[Dict[str, Any]]:
@@ -63,7 +111,7 @@ class OpenRouterClient:
             return self._models_cache
 
         try:
-            data = self._request("/models")
+            data = self._request("/models", timeout=_METADATA_TIMEOUT)
             models = data.get("data", [])
             self._models_cache = models
             self._cache_timestamp = time.time()
@@ -117,7 +165,8 @@ class OpenRouterClient:
             choices = result.get("choices", [])
             if not choices:
                 return "Error: No response from OpenRouter"
-            return choices[0]["message"]["content"]
+            text = choices[0]["message"]["content"]
+            return _append_sources(text, _extract_citations(result))
         except HTTPError as e:
             body = e.read().decode() if hasattr(e, "read") else ""
             return f"Error: OpenRouter HTTP {e.code}: {body}"
@@ -134,4 +183,5 @@ class OpenRouterClient:
 openrouter_client = OpenRouterClient(
     api_key=config.openrouter_api_key,
     default_model=config.openrouter_default_model,
+    timeout=config.openrouter_timeout,
 )
