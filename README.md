@@ -640,6 +640,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 
 ## Changelog
 
+### v4.6.1
+- Clean sdist (a stray working note had slipped into the 4.6.0 sdist); `ask_gemini` picks the thinking knob on the resolved model, `flash-lite` alias
+
 ### v4.6.0
 - Model auto-detection: every alias resolves to the newest matching model the API exposes; `gemini_list_models` reports provenance
 - `flash-lite` and `veo31_lite` aliases; Veo 3.0 / 2.0 removed (gone upstream)

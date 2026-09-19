@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.6.0
+**Version:** 4.6.1
 **SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + FastMCP + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.6.0)
+## Architecture (v4.6.1)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -525,7 +525,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->10<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
+Test files: <!--fact:unit-test-files-->11<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -538,6 +538,7 @@ tests/
 │   ├── test_pydantic_schemas.py   # Input validation
 │   ├── test_secrets_sanitizer.py  # Secret detection patterns
 │   ├── test_model_registry.py     # Auto-detect ranking, env override, cache, fallbacks
+│   ├── test_ask_gemini_thinking.py # thinking_level vs thinking_budget on the resolved model
 │   ├── test_openrouter_client.py  # OpenRouter client, citations
 │   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
@@ -712,11 +713,12 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 
 ## Roadmap
 
-### v4.6.0 (Current) - Model Auto-Detection
+### v4.6.x (Current) - Model Auto-Detection
 - ✅ Registry picks the newest model per category from the live API (version-aware, stable > preview); tools resolve lazily through `MODELS` maps
 - ✅ `gemini_list_models` reports provenance (auto / env / fallback) and runners-up
 - ✅ `flash-lite` + `veo31_lite` aliases; Veo 3.0 / 2.0 dropped (removed upstream)
 - ✅ 34 dead integration tests removed; CI integration job no longer `continue-on-error`
+- ✅ 4.6.1: clean sdist; `ask_gemini` thinking knob chosen on the resolved model ID
 
 ### v4.5.0 (Released) - OpenRouter Citations + Timeout
 - ✅ `ask_model` appends a **Sources** section from OpenRouter citations (Perplexity `citations` + OpenAI-style `url_citation` annotations)

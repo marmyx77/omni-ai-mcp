@@ -26,8 +26,8 @@ ASK_GEMINI_SCHEMA = {
         "prompt": {"type": "string", "description": "The question or prompt"},
         "model": {
             "type": "string",
-            "enum": ["pro", "flash", "fast"],
-            "description": "Model: pro (Gemini 3 - best reasoning, default), flash (2.5 - balanced), fast (2.5 - high volume, low reasoning)",
+            "enum": ["pro", "flash", "fast", "flash-lite"],
+            "description": "Model alias: pro (newest Gemini Pro - best reasoning, default), flash (newest Gemini Flash - balanced), fast (same as flash), flash-lite (cheapest). Concrete IDs are auto-detected from the API; see gemini_list_models.",
             "default": "pro"
         },
         "temperature": {
@@ -38,7 +38,7 @@ ASK_GEMINI_SCHEMA = {
         "thinking_level": {
             "type": "string",
             "enum": ["off", "low", "high"],
-            "description": "Thinking level for Gemini 3 Pro: 'off' (no thinking), 'low' (fast), 'high' (deep reasoning). For 2.5 models uses budget instead.",
+            "description": "Thinking: 'off' (none), 'low' (fast), 'high' (deep reasoning). Sent as thinking_level on Gemini 3+ models, as a thinking_budget on 2.x.",
             "default": "off"
         },
         "include_thoughts": {
@@ -63,6 +63,22 @@ ASK_GEMINI_SCHEMA = {
     },
     "required": ["prompt"]
 }
+
+
+THINKING_BUDGETS = {"low": 1024, "high": 8192}
+
+
+def thinking_params_for(model_id: str, thinking_level: str) -> dict:
+    """
+    Pick the thinking parameter the resolved model expects.
+
+    Gemini 2.x takes a token budget; Gemini 3+ takes a level (and also accepts a
+    budget, but the level is the native knob). Decided on the resolved ID, not on
+    the alias: with auto-detect, ``flash`` may be any generation.
+    """
+    if model_id.startswith("gemini-2."):
+        return {"thinking_budget": THINKING_BUDGETS.get(thinking_level, THINKING_BUDGETS["low"])}
+    return {"thinking_level": thinking_level}
 
 
 @tool(
@@ -180,14 +196,7 @@ def ask_gemini(
         if include_thoughts:
             thinking_params["include_thoughts"] = True
 
-        # For Gemini 3 Pro, use thinking_level
-        if model == "pro":
-            thinking_params["thinking_level"] = thinking_level
-        else:
-            # For Gemini 2.5 models, use thinking_budget
-            # Map levels to budgets: low=1024, high=8192
-            budget_map = {"low": 1024, "high": 8192}
-            thinking_params["thinking_budget"] = budget_map.get(thinking_level, 1024)
+        thinking_params.update(thinking_params_for(model_id, thinking_level))
 
         config_params["thinking_config"] = types.ThinkingConfig(**thinking_params)
 
