@@ -181,6 +181,17 @@ claude mcp list
 # omni-ai-mcp: Connected
 ```
 
+### Install a release tag on another machine
+
+For a machine that only runs the server (a home server, a second workstation), install a **GitHub release tag** with the versioned script — no checkout, nothing copied by hand. Updating = rerun with the newer tag:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/marmyx77/omni-ai-mcp/main/scripts/install_release.sh | bash            # latest tag
+curl -fsSL https://raw.githubusercontent.com/marmyx77/omni-ai-mcp/main/scripts/install_release.sh | bash -s v4.6.5  # pin a tag
+```
+
+It creates `~/.claude-mcp-servers/omni-ai-mcp/venv`, installs `omni-ai-mcp @ git+https://github.com/marmyx77/omni-ai-mcp@<tag>`, and points `mcpServers.omni-ai-mcp` in `~/.claude.json` at it (API keys already there are kept; otherwise export `GEMINI_API_KEY` before running). `--status` prints installed vs latest tag.
+
 ### Manual Install
 
 ```bash
