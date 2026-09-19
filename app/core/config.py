@@ -17,7 +17,7 @@ class Config:
     """
 
     # Version
-    version: str = "4.6.1"
+    version: str = "4.6.2"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))

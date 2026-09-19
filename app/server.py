@@ -28,8 +28,12 @@ from functools import partial
 # Import MCP SDK
 try:
     from mcp.server.fastmcp import FastMCP
-except ImportError:
-    print("Error: mcp package not installed. Run: pip install 'mcp[cli]'", file=sys.stderr)
+except ImportError as exc:
+    print(
+        f"Error: cannot import FastMCP from the mcp package ({exc}). "
+        "Run: pip install 'mcp[cli]>=1.0.0,<2'",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 from .core import config, structured_logger

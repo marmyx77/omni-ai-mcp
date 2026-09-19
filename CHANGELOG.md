@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.2] - 2026-09-19
+
+### Fixed
+- **Fresh installs crashed at import since 2026-09-07.** `mcp` 2.0 renamed `FastMCP` to `MCPServer` (`mcp.server.mcpserver`) and removed `mcp.server.fastmcp`; our `mcp[cli]>=1.0.0` requirement let pip resolve 2.x, and `app/server.py` exited with `sys.exit(1)` on the resulting `ImportError`. Every release up to 4.6.1 on PyPI is affected on a clean environment. Pinned to `mcp[cli]>=1.0.0,<2` in `pyproject.toml`, `requirements.txt` and the README manual-install line; the error message now includes the underlying import error and the working pin. Caught by the now-blocking CI (Python 3.11 / 3.12 resolved mcp 2.2.0); verified with a fresh Python 3.12 venv on both sides of the pin. Migration to mcp 2.x is tracked in the roadmap.
+- virgilio: banned phrase for an unpinned `mcp[cli]>=1.0.0` outside historical zones.
+
 ## [4.6.1] - 2026-09-19
 
 ### Fixed

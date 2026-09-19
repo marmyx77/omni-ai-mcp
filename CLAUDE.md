@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.6.1
-**SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + FastMCP + filelock
+**Version:** 4.6.2
+**SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.6.1)
+## Architecture (v4.6.2)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -719,6 +719,7 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - ✅ `flash-lite` + `veo31_lite` aliases; Veo 3.0 / 2.0 dropped (removed upstream)
 - ✅ 34 dead integration tests removed; CI integration job no longer `continue-on-error`
 - ✅ 4.6.1: clean sdist; `ask_gemini` thinking knob chosen on the resolved model ID
+- ✅ 4.6.2: `mcp[cli]<2` pin — mcp 2.x renamed `FastMCP` → `MCPServer`, fresh installs crashed at import
 
 ### v4.5.0 (Released) - OpenRouter Citations + Timeout
 - ✅ `ask_model` appends a **Sources** section from OpenRouter citations (Perplexity `citations` + OpenAI-style `url_citation` annotations)
@@ -745,6 +746,7 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - ✅ **GitHub Actions**: CI (Python 3.11/3.12) + Trusted Publishing to PyPI
 
 ### Next minor (Planned)
+- Migrate to `mcp` 2.x (`MCPServer` from `mcp.server.mcpserver`; other API changes per the upstream migration guide) and lift the `<2` pin
 - Streaming responses for `ask_gemini`
 - Multi-turn conversation support for `ask_model`
 - defusedxml parser replacing regex XML parsing

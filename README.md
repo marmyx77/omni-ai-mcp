@@ -184,7 +184,7 @@ claude mcp list
 ### Manual Install
 
 ```bash
-pip install 'mcp[cli]>=1.0.0' 'google-genai>=2.0.0' pydantic defusedxml filelock
+pip install 'mcp[cli]>=1.0.0,<2' 'google-genai>=2.0.0' pydantic defusedxml filelock
 
 mkdir -p ~/.claude-mcp-servers/omni-ai-mcp
 cp -r app/ run.py pyproject.toml ~/.claude-mcp-servers/omni-ai-mcp/
@@ -639,6 +639,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 ---
 
 ## Changelog
+
+### v4.6.2
+- Pin `mcp[cli]<2`: mcp 2.x (2026-09-07) renamed `FastMCP` → `MCPServer`, so a fresh install crashed at import
 
 ### v4.6.1
 - Clean sdist (a stray working note had slipped into the 4.6.0 sdist); `ask_gemini` picks the thinking knob on the resolved model, `flash-lite` alias
