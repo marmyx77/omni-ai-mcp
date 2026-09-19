@@ -29,16 +29,13 @@ omni-ai-mcp bridges Claude Code with Google Gemini and OpenRouter, enabling Clau
 
 ---
 
-## What's New in v4.4.0
+## What's New in v4.6.0
 
-All model defaults are now aligned with the latest Gemini IDs, verified live against the Gemini API:
+**Model auto-detection.** The server no longer ships a hardcoded "latest" model ID. At runtime it lists the models your Gemini API key exposes and, per category (pro, flash, flash-lite, image, video, TTS, deep research), picks the newest one by version number — stable preferred over preview at the same version. When Google ships `gemini-4.0-flash`, `flash` resolves to it on the next cache refresh (1 hour), with no release of this package.
 
-- **Text Flash** → `gemini-3.5-flash` · **Flash-Lite** → `gemini-3.1-flash-lite`
-- **Image** → `gemini-3-pro-image` (Nano Banana Pro) / `gemini-3.1-flash-image` (Nano Banana 2)
-- **TTS** → `gemini-3.1-flash-tts-preview`
-- **Deep Research** → `deep-research-preview-04-2026` (fixes the previous `404 NOT_FOUND` agent)
-
-Every default stays overridable via the `GEMINI_MODEL_*` environment variables.
+- `gemini_list_models` now shows **where each choice came from** (auto-detected, env override, static fallback) and the runners-up.
+- An explicit `GEMINI_MODEL_*` variable always wins; `GEMINI_MODEL_AUTODETECT=false` restores the static lists.
+- New `flash-lite` alias for `ask_gemini` / `ask_model`; `veo31_lite` for video. Veo 3.0 / 2.0 removed (gone upstream).
 
 ## Multi-Provider: Gemini + OpenRouter
 
@@ -51,7 +48,7 @@ ask_model("Write a poem", model="meta-llama/llama-3.3-70b-instruct")
 ask_model("Review this code", model="gemini-3.1-pro-preview")  # auto-routes to Gemini native API
 
 # If no Gemini key but OpenRouter key exists, Gemini models route via OpenRouter automatically
-ask_model("Summarize this", model="gemini-3.5-flash")  # -> google/ prefix on OpenRouter
+ask_model("Summarize this", model="flash")  # newest Flash, or google/ prefix on OpenRouter without a Gemini key
 
 # Discover all available models
 gemini_list_models()
@@ -59,7 +56,7 @@ gemini_list_models()
 
 ### Dynamic Model Registry
 
-No more hardcoded model IDs. The server discovers available models at runtime and always uses the latest. If a model is deprecated, it automatically falls back to the next available option.
+The server lists the models your key exposes at runtime and resolves every alias to the **newest matching model by version** (v4.6.0). If a model disappears upstream, the next one down takes over. `gemini_list_models` shows the resolved ID per category and its provenance.
 
 ```bash
 # Override via env vars if needed:
@@ -105,21 +102,21 @@ The `.dxt` bundle includes all Python dependencies — users don't need to insta
 ### Text & Reasoning
 | Tool | Description | Model |
 |------|-------------|-------|
-| `ask_gemini` | Text generation with thinking mode, multi-turn, dual storage (local/cloud) | Gemini 3.1 Pro |
-| `gemini_code_review` | Security, performance, and quality analysis | Gemini 3.1 Pro |
-| `gemini_brainstorm` | Creative ideation with 6 methodologies (SCAMPER, TRIZ, etc.) | Gemini 3.1 Pro |
-| `gemini_challenge` | Devil's advocate — find flaws in ideas, plans, and code | Gemini 3.1 Pro |
+| `ask_gemini` | Text generation with thinking mode, multi-turn, dual storage (local/cloud) | newest Gemini Pro |
+| `gemini_code_review` | Security, performance, and quality analysis | newest Gemini Pro |
+| `gemini_brainstorm` | Creative ideation with 6 methodologies (SCAMPER, TRIZ, etc.) | newest Gemini Pro |
+| `gemini_challenge` | Devil's advocate — find flaws in ideas, plans, and code | newest Gemini Pro |
 
 ### Code
 | Tool | Description | Model |
 |------|-------------|-------|
-| `gemini_analyze_codebase` | Whole-codebase analysis up to 1M tokens / 5MB | Gemini 3.1 Pro |
-| `gemini_generate_code` | Structured code generation with dry-run preview and XML output | Gemini 3.1 Pro |
+| `gemini_analyze_codebase` | Whole-codebase analysis up to 1M tokens / 5MB | newest Gemini Pro |
+| `gemini_generate_code` | Structured code generation with dry-run preview and XML output | newest Gemini Pro |
 
 ### Research & Web
 | Tool | Description | Model |
 |------|-------------|-------|
-| `gemini_web_search` | Real-time search with Google grounding & citations | Gemini 3 Flash |
+| `gemini_web_search` | Real-time search with Google grounding & citations | newest Gemini Flash |
 | `gemini_deep_research` | Autonomous 5-60 min research, 40+ sources, structured report | Deep Research Agent |
 
 ### RAG
@@ -133,10 +130,10 @@ The `.dxt` bundle includes all Python dependencies — users don't need to insta
 ### Media (Gemini exclusive)
 | Tool | Description | Model |
 |------|-------------|-------|
-| `gemini_analyze_image` | Vision: describe, OCR, Q&A on images | Gemini 3 Flash |
-| `gemini_generate_image` | Imagen — up to 4K resolution | Gemini 3 Pro Image |
-| `gemini_generate_video` | Veo 3.1 — 4-8s with native audio (dialogue, effects, ambient) | Veo 3.1 |
-| `gemini_text_to_speech` | 30 natural voices, multi-speaker dialogue | Gemini 2.5 Flash TTS |
+| `gemini_analyze_image` | Vision: describe, OCR, Q&A on images | newest Gemini Flash |
+| `gemini_generate_image` | Imagen — up to 4K resolution | newest Gemini Pro Image |
+| `gemini_generate_video` | Veo — 4-8s with native audio (dialogue, effects, ambient) | newest Veo |
+| `gemini_text_to_speech` | 30 natural voices, multi-speaker dialogue | newest Gemini Flash TTS |
 
 ### Conversation
 | Tool | Description |
@@ -187,7 +184,7 @@ claude mcp list
 ### Manual Install
 
 ```bash
-pip install 'mcp[cli]>=1.0.0' 'google-genai>=2.0.0' pydantic defusedxml filelock
+pip install 'mcp[cli]>=1.0.0,<2' 'google-genai>=2.0.0' pydantic defusedxml filelock
 
 mkdir -p ~/.claude-mcp-servers/omni-ai-mcp
 cp -r app/ run.py pyproject.toml ~/.claude-mcp-servers/omni-ai-mcp/
@@ -395,13 +392,13 @@ Levels: `off` (default), `low` (fast reasoning), `high` (deep analysis)
 
 ### Text Models
 
-| Alias | Resolved Model | Best For |
-|-------|----------------|----------|
-| `pro` | `gemini-3.1-pro-preview` | Complex reasoning, coding, analysis |
-| `flash` | `gemini-3.5-flash` | Balanced speed/quality |
-| `fast` / `flash-lite` | `gemini-3.1-flash-lite` | High-volume, simple tasks |
+| Alias | Category | Best For |
+|-------|----------|----------|
+| `pro` | newest Gemini Pro | Complex reasoning, coding, analysis |
+| `flash` / `fast` | newest Gemini Flash | Balanced speed/quality |
+| `flash-lite` | newest Gemini Flash-Lite | High-volume, simple tasks |
 
-Models are resolved dynamically at runtime — if a model is deprecated, the registry automatically falls back to the next available option.
+Aliases resolve at runtime to the newest model of that category your API key exposes (stable preferred over preview at the same version). Run `gemini_list_models` to see the concrete IDs and where each one came from; set `GEMINI_MODEL_*` to pin one.
 
 ### OpenRouter Models (via `ask_model`)
 
@@ -424,9 +421,12 @@ All settings via environment variables:
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | **required** | Google Gemini API key |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables `ask_model` for 400+ models) |
-| `GEMINI_MODEL_PRO` | `gemini-3.1-pro-preview` | Override Pro text model |
-| `GEMINI_MODEL_FLASH` | `gemini-3.5-flash` | Static fallback model |
-| `GEMINI_MODEL_DEEP_RESEARCH` | `deep-research-preview-04-2026` | Override research agent |
+| `GEMINI_MODEL_AUTODETECT` | `true` | Pick the newest model per category from the live API list; `false` = static fallbacks only |
+| `GEMINI_MODEL_PRO` / `_FLASH` / `_FLASH_LITE` | auto-detected | Pin a text model (an explicit value always wins over auto-detect) |
+| `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` | auto-detected | Pin an image model |
+| `GEMINI_MODEL_VEO31` / `_VEO31_FAST` / `_VEO31_LITE` | auto-detected | Pin a video model |
+| `GEMINI_MODEL_TTS_FLASH` / `_TTS_PRO` | auto-detected | Pin a TTS model |
+| `GEMINI_MODEL_DEEP_RESEARCH` | auto-detected | Pin the research agent |
 | `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Default OpenRouter model |
 | `OPENROUTER_TIMEOUT` | `120` | OpenRouter generation timeout in seconds (raise for search models like `perplexity/sonar-deep-research`) |
 | `GEMINI_SANDBOX_ROOT` | cwd | Root directory for file access |
@@ -639,6 +639,17 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 ---
 
 ## Changelog
+
+### v4.6.2
+- Pin `mcp[cli]<2`: mcp 2.x (2026-09-07) renamed `FastMCP` → `MCPServer`, so a fresh install crashed at import
+
+### v4.6.1
+- Clean sdist (a stray working note had slipped into the 4.6.0 sdist); `ask_gemini` picks the thinking knob on the resolved model, `flash-lite` alias
+
+### v4.6.0
+- Model auto-detection: every alias resolves to the newest matching model the API exposes; `gemini_list_models` reports provenance
+- `flash-lite` and `veo31_lite` aliases; Veo 3.0 / 2.0 removed (gone upstream)
+- Removed 34 dead integration tests that CI had been ignoring via `continue-on-error`; integration job is now blocking
 
 ### v4.4.0
 - Updated all model defaults to the latest Gemini IDs (verified live): flash → `gemini-3.5-flash`, flash-lite → `gemini-3.1-flash-lite`, image → `gemini-3-pro-image` / `gemini-3.1-flash-image`, TTS → `gemini-3.1-flash-tts-preview`

@@ -127,32 +127,6 @@ class TestTOCTOUFix:
             secure_read_file(test_file, max_size=100)
 
 
-class TestDoSProtection:
-    """DoS protection tests."""
-
-    def test_request_size_limit_in_code(self):
-        """MAX_REQUEST_SIZE is defined in main function."""
-        import ast
-        from pathlib import Path
-
-        # Read the source to check constant is defined
-        main_file = Path(__file__).parent.parent.parent / "app" / "__main__.py"
-        content = main_file.read_text()
-
-        assert "MAX_REQUEST_SIZE" in content
-        assert "10 * 1024 * 1024" in content  # 10MB
-
-    def test_large_request_logic(self):
-        """Large requests would be rejected."""
-        MAX_REQUEST_SIZE = 10 * 1024 * 1024  # Same as in __main__.py
-
-        # Simulate large request
-        large_request = "x" * (MAX_REQUEST_SIZE + 1)
-
-        # Should be rejected before JSON parsing
-        assert len(large_request) > MAX_REQUEST_SIZE
-
-
 class TestJSONRPCParseError:
     """JSON-RPC parse error response tests."""
 

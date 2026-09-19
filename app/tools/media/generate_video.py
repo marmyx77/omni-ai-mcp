@@ -23,8 +23,8 @@ GENERATE_VIDEO_SCHEMA = {
         },
         "model": {
             "type": "string",
-            "enum": ["veo31", "veo31_fast", "veo3", "veo3_fast", "veo2"],
-            "description": "veo31 (default): Best quality with audio. veo31_fast: Faster. veo3/veo3_fast: Stable versions. veo2: Legacy, no audio.",
+            "enum": ["veo31", "veo31_fast", "veo31_lite"],
+            "description": "veo31 (default): Best quality with native audio. veo31_fast: Faster. veo31_lite: Cheapest, 720p only. The exact model ID is auto-detected (newest Veo the API exposes).",
             "default": "veo31"
         },
         "aspect_ratio": {
@@ -157,7 +157,7 @@ def generate_video(
 - Duration: {duration}s
 - Resolution: {resolution}
 - Aspect ratio: {aspect_ratio}
-- Has audio: {'Yes' if model != 'veo2' else 'No'}"""
+- Has audio: Yes"""
         else:
             # Save to temp location and return info
             temp_path = f"/tmp/gemini_video_{int(time.time())}.mp4"
@@ -169,7 +169,7 @@ def generate_video(
 - Duration: {duration}s
 - Resolution: {resolution}
 - Aspect ratio: {aspect_ratio}
-- Has audio: {'Yes' if model != 'veo2' else 'No'}
+- Has audio: Yes
 
 Note: Specify output_path to save to a custom location."""
 

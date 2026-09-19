@@ -87,9 +87,9 @@ class AskGeminiInput(BaseModel):
         max_length=100000,
         description="The question or prompt for Gemini"
     )
-    model: Literal["pro", "flash", "fast"] = Field(
+    model: Literal["pro", "flash", "fast", "flash-lite"] = Field(
         default="pro",
-        description="Model selection"
+        description="Model alias; the concrete ID is auto-detected (newest matching model the API exposes)"
     )
     temperature: float = Field(
         default=0.5,

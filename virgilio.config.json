@@ -59,6 +59,18 @@
       "flags": "i",
       "reason": "model removed upstream (404), replaced by deep-research-preview-04-2026 in v4.4.0; citing it as current is stale. Allowed only in historical zones or with the allow-marker",
       "since": "2026-06-12"
+    },
+    {
+      "pattern": "\\b\\d+\\s+(unit\\s+|integration\\s+)?tests?\\s+(passing|pass|green)\\b",
+      "flags": "i",
+      "reason": "hardcoded test-pass counts drift on every commit (103→174→187 between v4.0.1 and v4.6.0, found stale on 2026-09-19); run pytest for the number, never write it. Allowed in historical zones (CHANGELOG, README Changelog)",
+      "since": "2026-09-19"
+    },
+    {
+      "pattern": "mcp\\[cli\\]\\s*>=\\s*1\\.0\\.0(?!\\s*,\\s*<\\s*2)",
+      "flags": "i",
+      "reason": "mcp 2.x (2026-09-07) renamed FastMCP → MCPServer; an unpinned >=1.0.0 resolves to 2.x and the server exits at import (fresh installs of 4.0.0–4.6.1 broken; caught by CI on 2026-09-19). Cite the pin: mcp[cli]>=1.0.0,<2",
+      "since": "2026-09-19"
     }
   ],
 

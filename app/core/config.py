@@ -17,18 +17,26 @@ class Config:
     """
 
     # Version
-    version: str = "4.5.0"
+    version: str = "4.6.2"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
 
-    # Model Versions (can be overridden via environment variables)
+    # Model IDs. These are STATIC FALLBACKS: at runtime the model registry
+    # auto-detects the newest matching model the API exposes (v4.6.0), unless
+    # the corresponding GEMINI_MODEL_* variable is set explicitly (env wins).
+    model_autodetect: bool = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_AUTODETECT", "true").lower() == "true"
+    )
     # Text Generation Models
     model_pro: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_PRO", "gemini-3.1-pro-preview")
     )
     model_flash: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH", "gemini-3.5-flash")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH", "gemini-3.8-flash")
+    )
+    model_flash_lite: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH_LITE", "gemini-3.5-flash-lite")
     )
     # Image Models
     model_image_pro: str = field(
@@ -37,21 +45,15 @@ class Config:
     model_image_flash: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_FLASH", "gemini-3.1-flash-image")
     )
-    # Video Models
+    # Video Models (Veo 3.0 / 2.0 were removed upstream — no longer configurable)
     model_veo31: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31", "veo-3.1-generate-preview")
     )
     model_veo31_fast: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31_FAST", "veo-3.1-fast-generate-preview")
     )
-    model_veo3: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO3", "veo-3.0-generate-001")
-    )
-    model_veo3_fast: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO3_FAST", "veo-3.0-fast-generate-001")
-    )
-    model_veo2: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO2", "veo-2.0-generate-001")
+    model_veo31_lite: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31_LITE", "veo-3.1-lite-generate-preview")
     )
     # TTS Models
     model_tts_flash: str = field(

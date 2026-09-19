@@ -27,12 +27,11 @@ jobs:
       - name: Run unit tests
         run: python -m pytest tests/unit/ -v --tb=short
 
+      # Integration tests are hermetic (no API key needed): a failure here is
+      # a real failure. Never add continue-on-error back — it hid 34 red tests
+      # behind a green badge until 2026-09-19.
       - name: Run integration tests
         run: python -m pytest tests/integration/ -v --tb=short
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        # Integration tests require a real API key — skip silently if not set
-        continue-on-error: ${{ secrets.GEMINI_API_KEY == '' }}
 
       - name: Check imports
         run: |

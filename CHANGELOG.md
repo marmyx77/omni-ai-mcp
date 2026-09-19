@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.2] - 2026-09-19
+
+### Fixed
+- **Fresh installs crashed at import since 2026-09-07.** `mcp` 2.0 renamed `FastMCP` to `MCPServer` (`mcp.server.mcpserver`) and removed `mcp.server.fastmcp`; our `mcp[cli]>=1.0.0` requirement let pip resolve 2.x, and `app/server.py` exited with `sys.exit(1)` on the resulting `ImportError`. Every release up to 4.6.1 on PyPI is affected on a clean environment. Pinned to `mcp[cli]>=1.0.0,<2` in `pyproject.toml`, `requirements.txt` and the README manual-install line; the error message now includes the underlying import error and the working pin. Caught by the now-blocking CI (Python 3.11 / 3.12 resolved mcp 2.2.0); verified with a fresh Python 3.12 venv on both sides of the pin. Migration to mcp 2.x is tracked in the roadmap.
+- virgilio: banned phrase for an unpinned `mcp[cli]>=1.0.0` outside historical zones.
+
+## [4.6.1] - 2026-09-19
+
+### Fixed
+- The v4.6.0 sdist on PyPI shipped a stray working note (`DIAGNOSI-gemini-3.8-flash-sessione-ISMS.md`, left in the checkout by another session; no secrets, not in the wheel). Removed from the repo; this release has a clean sdist.
+- `ask_gemini` chose `thinking_level` vs `thinking_budget` on the *alias* (`model == "pro"`), so with auto-detect `flash` → `gemini-3.8-flash` was sent a 2.x-style budget. Now decided on the resolved model ID (`thinking_params_for`): Gemini 2.x → budget, 3+ → level. Verified live that both knobs are accepted by 3.x, so this was a consistency fix, not an outage.
+- `ask_gemini` schema: `flash-lite` alias added; stale "Gemini 3 / 2.5" descriptions replaced by category wording.
+
+## [4.6.0] - 2026-09-19
+
+### Added
+- **Model auto-detection.** `ModelRegistry` now ranks the models returned by `models.list()` per category (`CATEGORY_SPECS`: anchored regex + version key) and picks the newest one, stable preferred over preview at the same version. Text `flash` resolved to `gemini-3.8-flash` and `flash-lite` to `gemini-3.5-flash-lite` on the day of release without either ID appearing in a priority list. Order: `GEMINI_MODEL_*` env override → auto-detect → static fallback → config default. `GEMINI_MODEL_AUTODETECT=false` restores the static behaviour.
+- `MODELS`, `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS` are now lazy maps resolved through the registry on every lookup. Previously they were frozen at import from `config.model_*`, so the "dynamic registry" shipped in v4.0.0 was only used by `ask_model` short names — every other tool was on static IDs.
+- `gemini_list_models` reports the provenance of each resolved model (auto-detected / env override / static fallback / config default), the runners-up, and the number of models discovered.
+- `flash-lite` alias for `ask_gemini` / `ask_model`; `veo31_lite` for `gemini_generate_video`. New env vars `GEMINI_MODEL_FLASH_LITE`, `GEMINI_MODEL_VEO31_LITE`, `GEMINI_MODEL_AUTODETECT`.
+- Failed discovery backs off for 5 minutes instead of retrying on every call.
+
+### Removed
+- Veo 3.0 / 2.0 aliases (`veo3`, `veo3_fast`, `veo2`) and their env vars: the models are no longer exposed by the API (404).
+- `tests/integration/test_backward_compat.py` and two sibling tests: they imported a root `server.py` shim deleted in v3.1.0 and checked an `app/__main__.py` that no longer exists. 34 tests had been failing on every CI run since, hidden by `continue-on-error`.
+
+### Fixed
+- CI: the integration job no longer has `continue-on-error`; the integration suite is hermetic and a failure is now red.
+- Stale "174 unit tests passing" claims replaced by non-numeric wording; a virgilio rule now bans hardcoded test-pass counts outside historical zones.
+
 ## [4.5.0] - 2026-07-05
 
 ### Added

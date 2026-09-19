@@ -300,6 +300,27 @@ class TestListModels:
 
         assert isinstance(result, str)
         assert "Text Pro" in result
+        # Header and rows must agree: a loaded registry is "discovered", not "unavailable"
+        assert "Discovered 5 models" in result
+        assert "unavailable" not in result
+        assert "`gemini-3.1-pro-preview` (auto-detected)" in result
+
+    def test_reports_fallbacks_when_discovery_failed(self):
+        from app.tools.text.models import list_models
+        from app.services.model_registry import ModelRegistry
+        import time
+
+        fake_reg = ModelRegistry()
+        fake_reg._available_model_names = []  # discovery failed
+        fake_reg._cache_timestamp = time.time()
+
+        with patch("app.tools.text.models.model_registry", fake_reg), \
+             patch("app.tools.text.models.openrouter_client", MagicMock(is_available=False)):
+            result = list_models(include_openrouter=False)
+
+        assert "API discovery unavailable" in result
+        assert "(static fallback)" in result
+        assert "auto-detected" not in result
 
     def test_openrouter_section_when_available(self):
         from app.tools.text.models import list_models

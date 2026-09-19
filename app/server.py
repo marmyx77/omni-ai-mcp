@@ -28,8 +28,12 @@ from functools import partial
 # Import MCP SDK
 try:
     from mcp.server.fastmcp import FastMCP
-except ImportError:
-    print("Error: mcp package not installed. Run: pip install 'mcp[cli]'", file=sys.stderr)
+except ImportError as exc:
+    print(
+        f"Error: cannot import FastMCP from the mcp package ({exc}). "
+        "Run: pip install 'mcp[cli]>=1.0.0,<2'",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 from .core import config, structured_logger
@@ -258,7 +262,7 @@ def gemini_generate_video(
         duration: 4, 6, or 8 seconds (8s required for 1080p)
         resolution: 720p (default) or 1080p (Veo 3.1 only, requires 8s)
         aspect_ratio: 16:9 (landscape) or 9:16 (portrait)
-        model: veo31 (best), veo31_fast, veo3, veo3_fast, veo2 (legacy)
+        model: veo31 (best, default), veo31_fast, veo31_lite (720p only)
         negative_prompt: What NOT to include (avoid "no" or "don't")
 
     Returns:
@@ -399,7 +403,7 @@ def _ask_gemini(
 
     Args:
         prompt: The question or prompt
-        model: pro (Gemini 3.1 Pro - best reasoning), flash (Gemini 3.5 Flash - balanced), fast (Gemini 3.5 Flash - high volume)
+        model: pro (newest Gemini Pro - best reasoning), flash (newest Gemini Flash - balanced), fast (same as flash), flash-lite (cheapest). IDs auto-detected from the API; see gemini_list_models
         temperature: Temperature 0.0-1.0 (default 0.5)
         thinking_level: off, low (fast), or high (deep reasoning)
         include_thoughts: If true, returns thought summaries
