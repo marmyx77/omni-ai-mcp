@@ -65,6 +65,7 @@ from .tools.web.deep_research import deep_research
 from .tools.media.generate_image import generate_image
 from .tools.media.generate_video import generate_video
 from .tools.media.text_to_speech import text_to_speech
+from .tools.media.transcribe_audio import transcribe_audio
 from .tools.rag.file_search import file_search
 from .tools.rag.file_store import create_file_store, upload_file, list_file_stores
 from .tools.text.ask_gemini import ask_gemini
@@ -311,6 +312,48 @@ def gemini_text_to_speech(
         output_path=output_path,
         speakers=speakers,
         model=model
+    )
+
+
+# =============================================================================
+# TOOL: Audio Transcription (speech to text)
+# =============================================================================
+
+@mcp.tool()
+def gemini_transcribe_audio(
+    audio_path: str,
+    diarization: bool = False,
+    word_timestamps: bool = False,
+    language_codes: Optional[List[str]] = None,
+    vocabulary: Optional[List[str]] = None,
+    mode: str = "auto",
+    output_path: Optional[str] = None
+) -> str:
+    """
+    Transcribe an audio file (speech to text) with Gemini's dedicated transcription model.
+    85+ languages auto-detected, code-switching handled. Up to 1 hour of audio
+    (30 minutes when diarization or word_timestamps are on).
+
+    Args:
+        audio_path: Local audio file (wav, mp3, m4a, aac, ogg, opus, flac, aiff, webm)
+        diarization: Label speakers (up to 8). Not combinable with vocabulary
+        word_timestamps: Return timestamped sentences ([mm:ss.s] prefix)
+        language_codes: Optional BCP-47 hints, e.g. ["it", "en"]; omit for auto-detect
+        vocabulary: Domain terms/names to bias recognition toward
+        mode: auto (default: smart, or verbatim when word_timestamps is on), smart (fillers removed, numbers/dates formatted), verbatim
+        output_path: Optional file to save the transcript (.json = structured, else text)
+
+    Returns:
+        Transcript with a header naming the model and detected language(s)
+    """
+    return transcribe_audio(
+        audio_path=audio_path,
+        diarization=diarization,
+        word_timestamps=word_timestamps,
+        language_codes=language_codes,
+        vocabulary=vocabulary,
+        mode=mode,
+        output_path=output_path
     )
 
 

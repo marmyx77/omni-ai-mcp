@@ -24,7 +24,7 @@ copy.
 | Test-file counts | `CLAUDE.md` (markers `fact:unit-test-files` / `fact:integration-test-files`) | `virgilio check` (counts) |
 | Current release status | `CLAUDE.md` (`doc-status` line + «Roadmap» section) — mirrored in the internal `DEVELOPMENT_ROADMAP.md` «Current Status» | `virgilio check` (doc-status, on CLAUDE.md) + §9 audit |
 | Release notes | `CHANGELOG.md` | historical, append-only |
-| MCP tool count (20) | `CLAUDE.md` «Available Tools» table | **§9 audit only** (tool files ≠ `@mcp.tool` registrations: not cleanly countable from the filesystem) |
+| MCP tool count (21) | `CLAUDE.md` «Available Tools» table | **§9 audit only** (tool files ≠ `@mcp.tool` registrations: not cleanly countable from the filesystem) |
 | Test-pass counts («N tests passing») | nowhere — run `pytest -q` | `virgilio check` (banned phrase outside historical zones; the number drifted 103→174→187 in six months) |
 | Concrete Gemini model IDs | nowhere in prose — `gemini_list_models` at runtime | docs name categories («newest Gemini Flash»); IDs live only in `CATEGORY_SPECS` fallbacks and CHANGELOG (historical) |
 
@@ -77,7 +77,7 @@ internal `DEVELOPMENT_ROADMAP.md`). Don't mass-backdate unverified docs (a false
 The gate covers the **known** classes; new ones emerge from a periodic audit that checks the docs
 against **REALITY** (git log, the tags on `origin/main`, the PyPI release), not against other docs.
 3 axes: (a) status vs. commits; (b) plans vs. real releases; (c) cross-doc consistency. Standing §9
-items for this repo: the MCP tool count (20), the roadmap «Planned» sections vs. shipped versions,
+items for this repo: the MCP tool count (21), the roadmap «Planned» sections vs. shipped versions,
 PyPI/`.dxt` publication vs. "released" claims. Every clean false claim → a new rule; log the handoff
 even at 0 findings.
 

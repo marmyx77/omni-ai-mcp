@@ -3,7 +3,7 @@ FastMCP Server Tests for v4.0.0
 
 Tests:
 - Server initialization
-- Tool registration (20 tools)
+- Tool registration (21 tools)
 - MCP protocol compliance
 """
 
@@ -37,11 +37,11 @@ class TestFastMCPServerInit:
 class TestToolRegistration:
     """Tool registration tests."""
 
-    def test_all_20_tools_registered(self):
-        """All 20 tools are registered (v4.0.0)."""
+    def test_all_21_tools_registered(self):
+        """All 21 tools are registered (v4.7.0: + gemini_transcribe_audio)."""
         from app.server import mcp
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 20
+        assert len(tools) == 21
 
     def test_analysis_tools_registered(self):
         """Analysis tools are registered."""
