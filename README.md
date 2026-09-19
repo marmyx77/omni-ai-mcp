@@ -640,6 +640,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 
 ## Changelog
 
+### v4.6.4
+- Deep Research: agent resolved per call from the registry; errors name the API message, agent and package version; editable install recommended so sessions never run stale code
+
 ### v4.6.3
 - `ask_gemini` thinking: `auto` (default, replaces the misleading `off`) and `medium`; Gemini 3+ always reasons, so `auto` is not zero
 

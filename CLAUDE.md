@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.6.3
+**Version:** 4.6.4
 **SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.6.3)
+## Architecture (v4.6.4)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -148,11 +148,12 @@ echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | GEMINI_API_KEY=your_key 
 ```
 
 ### Reinstall after changes
+Claude Code starts the server as `python3.14 -m app.server` **without a cwd** (`~/.claude.json` → `mcpServers.omni-ai-mcp`), so every session outside this repo imports the package from site-packages. Install it **editable** once, and sessions run whatever is checked out here:
 ```bash
-rsync -a app/ ~/.claude-mcp-servers/omni-ai-mcp/app/
-cp run.py ~/.claude-mcp-servers/omni-ai-mcp/
-# Then restart Claude Code
+/opt/homebrew/opt/python@3.14/bin/python3.14 -m pip install --break-system-packages --no-deps -e .
+# Then restart the Claude Code sessions (running servers keep the old code in memory)
 ```
+Never copy `app/` around: the `~/.claude-mcp-servers/omni-ai-mcp` copy is referenced by nothing. A non-editable install is how site-packages stayed at 4.0.0 for three months while `deep-research-pro-preview` 404'd in every session (found 2026-09-19).
 
 ### Run tests
 ```bash
@@ -525,7 +526,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->11<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
+Test files: <!--fact:unit-test-files-->12<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -539,6 +540,7 @@ tests/
 │   ├── test_secrets_sanitizer.py  # Secret detection patterns
 │   ├── test_model_registry.py     # Auto-detect ranking, env override, cache, fallbacks
 │   ├── test_ask_gemini_thinking.py # thinking_level vs thinking_budget on the resolved model
+│   ├── test_deep_research_errors.py # error wording, per-call agent resolution, steps extraction
 │   ├── test_openrouter_client.py  # OpenRouter client, citations
 │   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
@@ -722,6 +724,7 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - ✅ 4.6.1: clean sdist; `ask_gemini` thinking knob chosen on the resolved model ID
 - ✅ 4.6.2: `mcp[cli]<2` pin — mcp 2.x renamed `FastMCP` → `MCPServer`, fresh installs crashed at import
 - ✅ 4.6.3: `ask_gemini` thinking `auto` (was the misleading `off`) + `medium`
+- ✅ 4.6.4: Deep Research agent resolved per call; errors name API message, agent and answering version; editable install
 
 ### v4.5.0 (Released) - OpenRouter Citations + Timeout
 - ✅ `ask_model` appends a **Sources** section from OpenRouter citations (Perplexity `citations` + OpenAI-style `url_citation` annotations)
