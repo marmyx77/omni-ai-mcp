@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version 4.4.0](https://img.shields.io/badge/version-4.4.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
+[![Version 4.6.5](https://img.shields.io/badge/version-4.6.5-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
 [![PyPI](https://img.shields.io/badge/PyPI-omni--ai--mcp-blue.svg)](https://pypi.org/project/omni-ai-mcp/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 

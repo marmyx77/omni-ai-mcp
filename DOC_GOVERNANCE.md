@@ -20,7 +20,7 @@ copy.
 
 | Fact | Owner | Enforcement |
 |---|---|---|
-| Version number | `pyproject.toml` (synced to `app/__init__.py`, `app/core/config.py`, `manifest.json`, `CLAUDE.md` header by `scripts/bump_version.sh`) | bump script |
+| Version number | `pyproject.toml` (synced to `app/__init__.py`, `app/core/config.py`, `manifest.json`, `.claude-plugin/plugin.json`, README badge, `CLAUDE.md` header by `scripts/bump_version.sh`) | bump script + `tests/unit/test_version_consistency.py` (CI) |
 | Test-file counts | `CLAUDE.md` (markers `fact:unit-test-files` / `fact:integration-test-files`) | `virgilio check` (counts) |
 | Current release status | `CLAUDE.md` (`doc-status` line + «Roadmap» section) — mirrored in the internal `DEVELOPMENT_ROADMAP.md` «Current Status» | `virgilio check` (doc-status, on CLAUDE.md) + §9 audit |
 | Release notes | `CHANGELOG.md` | historical, append-only |

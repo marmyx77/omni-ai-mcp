@@ -538,7 +538,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->13<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
+Test files: <!--fact:unit-test-files-->14<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -554,6 +554,7 @@ tests/
 │   ├── test_ask_gemini_thinking.py # thinking_level vs thinking_budget on the resolved model
 │   ├── test_deep_research_errors.py # error wording, per-call agent resolution, steps extraction
 │   ├── test_deep_research_resume.py # retrieve / resume / follow-up modes with a fake client
+│   ├── test_version_consistency.py # every stated version == pyproject.toml (badge, plugin.json, manifest, CLAUDE.md)
 │   ├── test_openrouter_client.py  # OpenRouter client, citations
 │   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
@@ -601,7 +602,7 @@ Before ending any working session:
 - [ ] Does the uncommitted work touch code, tools, or plugin files? → release
 - [ ] Does it touch only docs/config? → commit + push without tag
 
-Every release must keep 4 version files in sync:
+Every release must keep these version fields in sync (`scripts/bump_version.sh` does it; `tests/unit/test_version_consistency.py` fails CI if any drifts):
 
 | File | Field |
 |------|-------|
@@ -609,6 +610,9 @@ Every release must keep 4 version files in sync:
 | `app/__init__.py` | `__version__ = "X.Y.Z"` |
 | `app/core/config.py` | `version: str = "X.Y.Z"` |
 | `manifest.json` | `"version": "X.Y.Z"` — DXT plugin for Claude Desktop |
+| `.claude-plugin/plugin.json` | `"version": "X.Y.Z"` — Claude Code plugin manifest |
+| `README.md` | version badge |
+| `CLAUDE.md` | `**Version:**` header + `## Architecture (vX.Y.Z)` heading |
 
 ### Step-by-step release
 
