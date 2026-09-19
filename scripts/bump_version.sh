@@ -9,6 +9,9 @@
 #   app/__init__.py       — __version__
 #   app/core/config.py    — version field in Config
 #   manifest.json         — "version" (DXT plugin manifest)
+#   README.md             — version badge
+#   .claude-plugin/plugin.json — "version" (Claude Code plugin manifest)
+#   CLAUDE.md             — **Version:** header + Architecture heading
 #
 # After running this script:
 #   1. Add release notes to CHANGELOG.md
@@ -84,6 +87,18 @@ sed "${SED_INPLACE[@]}" \
   -e "s/^## Architecture (v$CURRENT_VERSION)/## Architecture (v$NEW_VERSION)/" \
   CLAUDE.md
 echo "  [ok] CLAUDE.md"
+
+# 6. README version badge
+sed "${SED_INPLACE[@]}" \
+  -e "s|\[!\[Version $CURRENT_VERSION\](https://img.shields.io/badge/version-$CURRENT_VERSION-green.svg)\]|[![Version $NEW_VERSION](https://img.shields.io/badge/version-$NEW_VERSION-green.svg)]|" \
+  README.md
+echo "  [ok] README.md (badge)"
+
+# 7. .claude-plugin/plugin.json (Claude Code plugin manifest — was stuck at 4.0.6 until 2026-09-19)
+sed "${SED_INPLACE[@]}" \
+  "s/\"version\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"version\": \"$NEW_VERSION\"/" \
+  .claude-plugin/plugin.json
+echo "  [ok] .claude-plugin/plugin.json"
 
 echo ""
 echo "All files updated to v$NEW_VERSION."
