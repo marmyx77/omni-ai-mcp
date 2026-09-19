@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.4] - 2026-09-19
+
+### Fixed
+- **"Deep Research Agent not available", definitively.** Root cause was not the tool but *which code answered*: Claude Code starts the server as `python -m app.server` without a cwd, so every session outside this repo imported the pip-installed package in site-packages, stuck at **4.0.0** whose agent ID `deep-research-pro-preview` was retired upstream (fixed in 4.4.0, June). The opaque error hid both the 404 and the agent. Three changes:
+  - the agent is resolved **per call** from the model registry (`deep_research` category: newest `deep-research-preview-MM-YYYY` the API exposes, or `GEMINI_MODEL_DEEP_RESEARCH`), no longer frozen at import;
+  - errors now carry the real API message, the agent ID and the **package version that answered** (`format_deep_research_error`), and a stale `continuation_id` is reported as such instead of as a missing agent;
+  - the recommended local install is now **editable** (`pip install -e .`), so sessions always run the checked-out code after a `git pull` — no reinstall step to forget.
+- Verified live: `deep-research-preview-04-2026` and `-max-` both create background interactions; a full 8-minute run from the working tree returned a report with sources.
+
 ## [4.6.3] - 2026-09-19
 
 ### Changed

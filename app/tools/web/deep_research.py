@@ -10,7 +10,9 @@ from typing import Optional
 
 from ...tools.registry import tool
 from ...services import client, is_available, get_error
+from ...services.model_registry import model_registry
 from ...core import config, log_progress
+from ... import __version__
 
 
 def extract_interaction_text(interaction) -> str:
@@ -59,8 +61,54 @@ def extract_interaction_text(interaction) -> str:
     return str(interaction)
 
 
-# Deep Research agent configuration (from config, overridable via GEMINI_MODEL_DEEP_RESEARCH)
+# Static fallback only. The agent used at call time comes from the registry
+# (category "deep_research": newest deep-research-preview-MM-YYYY the API
+# exposes, or the GEMINI_MODEL_DEEP_RESEARCH override). Freezing it at import
+# is what kept dead agent IDs alive for months (4.0.0 → 4.4.0).
 DEEP_RESEARCH_AGENT = config.model_deep_research
+
+
+def resolve_agent() -> str:
+    """Deep Research agent ID for this call (env override > auto-detect > fallback)."""
+    return model_registry.resolve("deep_research")
+
+
+def format_deep_research_error(exc: Exception, agent: str, interaction_id: Optional[str] = None) -> str:
+    """
+    Turn an API exception into a message that says WHAT failed and WHICH code answered.
+
+    The old message ("Deep Research Agent not available") hid the real error and
+    the agent ID, so a stale install kept reporting the same line for months.
+    """
+    error_msg = str(exc)
+    lower = error_msg.lower()
+    footer = (
+        f"\n\nAgent: `{agent}` · omni-ai-mcp {__version__}\n"
+        f"Run `gemini_list_models` to see the agent the registry resolves and where it comes from."
+    )
+    if interaction_id and ("not found" in lower or "404" in lower):
+        return (
+            f"Error: interaction `{interaction_id}` not found (expired or wrong continuation_id).\n"
+            f"API said: {error_msg}" + footer
+        )
+    if "not found" in lower or "404" in lower:
+        return (
+            f"Error: the Deep Research agent `{agent}` was not found by the API.\n"
+            f"It was probably renamed or retired upstream; the registry auto-detects the newest "
+            f"`deep-research-preview-MM-YYYY` on the next refresh (1 h), or set GEMINI_MODEL_DEEP_RESEARCH.\n"
+            f"API said: {error_msg}" + footer
+        )
+    if "quota" in lower or "rate" in lower or "resource_exhausted" in lower:
+        return (
+            f"Error: API quota exceeded. Deep Research uses significant compute; try again later.\n"
+            f"API said: {error_msg}" + footer
+        )
+    if "permission" in lower or "403" in lower:
+        return (
+            f"Error: the API key is not allowed to use the Deep Research agent.\n"
+            f"API said: {error_msg}" + footer
+        )
+    return f"Error: {error_msg}" + footer
 
 # Polling configuration
 POLL_INTERVAL_SECONDS = 15  # Check every 15 seconds
@@ -131,14 +179,15 @@ def deep_research(
         return f"Error: {get_error()}"
 
     max_wait_seconds = max_wait_minutes * 60
+    agent = resolve_agent()
 
     try:
-        log_progress(f"deep_research: Starting research on '{query[:50]}...'")
+        log_progress(f"deep_research: Starting research on '{query[:50]}...' (agent={agent}, v{__version__})")
 
         # Create interaction with deep research agent
         create_kwargs = {
             "input": query,
-            "agent": DEEP_RESEARCH_AGENT,
+            "agent": agent,
             "background": True  # Required for agents
         }
 
@@ -213,20 +262,4 @@ def deep_research(
             )
         raise
     except Exception as e:
-        error_msg = str(e)
-
-        # Handle common errors
-        if "not found" in error_msg.lower():
-            return (
-                f"Error: Deep Research Agent not available.\n"
-                f"Agent ID: {DEEP_RESEARCH_AGENT}\n"
-                f"The agent may not be enabled for your API key or region."
-            )
-        elif "quota" in error_msg.lower() or "rate" in error_msg.lower():
-            return (
-                f"Error: API quota exceeded.\n"
-                f"Deep Research uses significant compute resources.\n"
-                f"Try again later or check your API quota limits."
-            )
-
-        return f"Error: {error_msg}"
+        return format_deep_research_error(e, agent, continuation_id)
