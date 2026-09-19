@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.3] - 2026-09-19
+
+### Changed
+- **`ask_gemini` `thinking_level`: `off` renamed to `auto`, `medium` added.** Measured live on 2026-09-19: Gemini 3+ models always reason, and sending no thinking config ("off") makes the model use its own dynamic default, which costs *more* than `low` (3.8 Flash: 181 thought tokens with no config vs 45 at `low`; 3.1 Pro: 400 vs 259). The default is now `auto` and its description says so; `off` is kept as a deprecated alias so existing calls behave exactly as before. `medium` is accepted by every 3.x model (`minimal` is rejected by both, so it is not exposed) and maps to a 4096 budget on 2.x. `include_thoughts=true` now works with `auto` too: the summary is requested without forcing a level.
+
 ## [4.6.2] - 2026-09-19
 
 ### Fixed

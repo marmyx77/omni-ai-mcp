@@ -640,6 +640,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 
 ## Changelog
 
+### v4.6.3
+- `ask_gemini` thinking: `auto` (default, replaces the misleading `off`) and `medium`; Gemini 3+ always reasons, so `auto` is not zero
+
 ### v4.6.2
 - Pin `mcp[cli]<2`: mcp 2.x (2026-09-07) renamed `FastMCP` → `MCPServer`, so a fresh install crashed at import
 

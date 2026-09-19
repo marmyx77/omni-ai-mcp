@@ -391,7 +391,7 @@ def _ask_gemini(
     prompt: str,
     model: str = "pro",
     temperature: float = 0.5,
-    thinking_level: str = "off",
+    thinking_level: str = "auto",
     include_thoughts: bool = False,
     continuation_id: Optional[str] = None,
     mode: str = "local",
@@ -405,7 +405,7 @@ def _ask_gemini(
         prompt: The question or prompt
         model: pro (newest Gemini Pro - best reasoning), flash (newest Gemini Flash - balanced), fast (same as flash), flash-lite (cheapest). IDs auto-detected from the API; see gemini_list_models
         temperature: Temperature 0.0-1.0 (default 0.5)
-        thinking_level: off, low (fast), or high (deep reasoning)
+        thinking_level: auto (model default, default), low (fastest), medium, high (deepest). Gemini 3+ always thinks: auto is not zero
         include_thoughts: If true, returns thought summaries
         continuation_id: Thread ID to continue a previous conversation
         mode: local (SQLite, default) or cloud (Interactions API with 55-day retention)
