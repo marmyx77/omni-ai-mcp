@@ -153,7 +153,7 @@ Claude Code starts the server as `python3.14 -m app.server` **without a cwd** (`
 /opt/homebrew/opt/python@3.14/bin/python3.14 -m pip install --break-system-packages --no-deps -e .
 # Then restart the Claude Code sessions (running servers keep the old code in memory)
 ```
-Never copy `app/` around: the `~/.claude-mcp-servers/omni-ai-mcp` copy is referenced by nothing. A non-editable install is how site-packages stayed at 4.0.0 for three months while `deep-research-pro-preview` 404'd in every session (found 2026-09-19).
+Never copy `app/` around: the `~/.claude-mcp-servers/omni-ai-mcp` copy is referenced by nothing. A non-editable install is how site-packages stayed at 4.0.0 for three months while its retired Deep Research agent ID 404'd in every session (found 2026-09-19; see CHANGELOG 4.6.4).
 
 ### Run tests
 ```bash
