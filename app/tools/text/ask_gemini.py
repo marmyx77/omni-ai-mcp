@@ -37,9 +37,9 @@ ASK_GEMINI_SCHEMA = {
         },
         "thinking_level": {
             "type": "string",
-            "enum": ["off", "low", "high"],
-            "description": "Thinking: 'off' (none), 'low' (fast), 'high' (deep reasoning). Sent as thinking_level on Gemini 3+ models, as a thinking_budget on 2.x.",
-            "default": "off"
+            "enum": ["auto", "low", "medium", "high", "off"],
+            "description": "Reasoning depth: 'auto' (default: the model decides; Gemini 3+ always thinks, so this is NOT zero), 'low' (fastest, cheapest), 'medium', 'high' (deepest). 'off' is a deprecated alias of 'auto'. Sent as thinking_level on Gemini 3+, as a thinking_budget on 2.x.",
+            "default": "auto"
         },
         "include_thoughts": {
             "type": "boolean",
@@ -65,7 +65,10 @@ ASK_GEMINI_SCHEMA = {
 }
 
 
-THINKING_BUDGETS = {"low": 1024, "high": 8192}
+THINKING_BUDGETS = {"low": 1024, "medium": 4096, "high": 8192}
+# Levels that mean "do not set a level": the model uses its own default.
+# Gemini 3+ models always think, so neither of these disables reasoning.
+THINKING_AUTO_LEVELS = ("auto", "off")
 
 
 def thinking_params_for(model_id: str, thinking_level: str) -> dict:
@@ -81,6 +84,21 @@ def thinking_params_for(model_id: str, thinking_level: str) -> dict:
     return {"thinking_level": thinking_level}
 
 
+def build_thinking_config(model_id: str, thinking_level: str, include_thoughts: bool) -> Optional[dict]:
+    """
+    ThinkingConfig kwargs for a request, or None when nothing needs to be set.
+
+    'auto'/'off' leave the level to the model; include_thoughts is honoured
+    even then, because Gemini 3+ reasons regardless and can still summarise it.
+    """
+    params = {}
+    if include_thoughts:
+        params["include_thoughts"] = True
+    if thinking_level not in THINKING_AUTO_LEVELS:
+        params.update(thinking_params_for(model_id, thinking_level))
+    return params or None
+
+
 @tool(
     name="ask_gemini",
     description="Ask Gemini a question with optional model selection. Supports multi-turn conversations via continuation_id. Use mode='cloud' for long-term conversations with 55-day retention.",
@@ -92,7 +110,7 @@ def ask_gemini(
     prompt: str,
     model: str = "pro",
     temperature: float = 0.5,
-    thinking_level: str = "off",
+    thinking_level: str = "auto",
     include_thoughts: bool = False,
     continuation_id: Optional[str] = None,
     mode: str = "local",
@@ -101,9 +119,9 @@ def ask_gemini(
     """
     Gemini query with model selection, thinking capabilities, and conversation memory.
 
-    Thinking allows the model to engage in deeper reasoning for complex tasks.
-    - For Gemini 3 Pro: uses thinking_level ("low" or "high")
-    - For Gemini 2.5: uses thinking_budget (auto-calculated based on level)
+    thinking_level controls reasoning depth: auto (model default), low, medium, high.
+    - Gemini 3+: sent as thinking_level (these models always think; 'auto' is not zero)
+    - Gemini 2.x: sent as a thinking_budget derived from the level
 
     Supports @file references in prompts to include file contents:
     - @file.py - Include single file
@@ -188,16 +206,8 @@ def ask_gemini(
         "max_output_tokens": 8192
     }
 
-    # Add thinking config if enabled
-    if thinking_level != "off":
-        thinking_params = {}
-
-        # Include thought summaries if requested
-        if include_thoughts:
-            thinking_params["include_thoughts"] = True
-
-        thinking_params.update(thinking_params_for(model_id, thinking_level))
-
+    thinking_params = build_thinking_config(model_id, thinking_level, include_thoughts)
+    if thinking_params:
         config_params["thinking_config"] = types.ThinkingConfig(**thinking_params)
 
     response = generate_with_fallback(
@@ -209,7 +219,7 @@ def ask_gemini(
 
     # Extract response text
     response_text = ""
-    if include_thoughts and thinking_level != "off":
+    if include_thoughts:
         result_parts = []
         thoughts_parts = []
         answer_parts = []
@@ -274,7 +284,7 @@ def _ask_gemini_cloud(
     prompt: str,
     model: str = "pro",
     temperature: float = 0.5,
-    thinking_level: str = "off",
+    thinking_level: str = "auto",
     include_thoughts: bool = False,
     continuation_id: Optional[str] = None,
     title: Optional[str] = None

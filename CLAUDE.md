@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.6.2
+**Version:** 4.6.3
 **SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.6.2)
+## Architecture (v4.6.3)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -670,9 +670,10 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 ## Gemini API Nuances
 
 ### Thinking Mode
-- Gemini 3 Pro: Use `thinking_level` ("low" or "high")
-- Gemini 2.5: Use `thinking_budget` (1024 for low, 8192 for high)
-- Set `include_thoughts=True` to see reasoning process
+- `ask_gemini` exposes `thinking_level`: `auto` (default), `low`, `medium`, `high`; `off` is a deprecated alias of `auto`
+- Gemini 3+: sent as `thinking_level`. These models **always think**: `auto` = the model's dynamic default, measured costlier than `low` (2026-09-19: 3.8 Flash 181 vs 45 thought tokens). `minimal` is rejected by 3.1 Pro and 3.8 Flash, so it is not exposed
+- Gemini 2.x: sent as `thinking_budget` (1024 / 4096 / 8192)
+- Set `include_thoughts=True` to see the reasoning summary (works with `auto` too)
 
 ### Web Search
 - Uses `google_search` tool in config
@@ -720,6 +721,7 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - ✅ 34 dead integration tests removed; CI integration job no longer `continue-on-error`
 - ✅ 4.6.1: clean sdist; `ask_gemini` thinking knob chosen on the resolved model ID
 - ✅ 4.6.2: `mcp[cli]<2` pin — mcp 2.x renamed `FastMCP` → `MCPServer`, fresh installs crashed at import
+- ✅ 4.6.3: `ask_gemini` thinking `auto` (was the misleading `off`) + `medium`
 
 ### v4.5.0 (Released) - OpenRouter Citations + Timeout
 - ✅ `ask_model` appends a **Sources** section from OpenRouter citations (Perplexity `citations` + OpenAI-style `url_citation` annotations)

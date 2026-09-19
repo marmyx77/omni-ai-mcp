@@ -22,10 +22,12 @@ except ImportError:
 
 
 class ThinkingLevel(str, Enum):
-    """Thinking depth for Gemini reasoning."""
-    OFF = "off"
+    """Reasoning depth. AUTO = model default (Gemini 3+ always thinks); OFF is a deprecated alias of AUTO."""
+    AUTO = "auto"
     LOW = "low"
+    MEDIUM = "medium"
     HIGH = "high"
+    OFF = "off"
 
 
 class CodeStyle(str, Enum):
@@ -98,8 +100,8 @@ class AskGeminiInput(BaseModel):
         description="Sampling temperature"
     )
     thinking_level: ThinkingLevel = Field(
-        default=ThinkingLevel.OFF,
-        description="Thinking depth for complex reasoning"
+        default=ThinkingLevel.AUTO,
+        description="Reasoning depth: auto (model default), low, medium, high"
     )
     include_thoughts: bool = Field(
         default=False,

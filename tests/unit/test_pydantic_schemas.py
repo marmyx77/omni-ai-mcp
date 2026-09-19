@@ -30,7 +30,7 @@ class TestValidateToolInput:
 
         assert result['model'] == 'pro'
         assert result['temperature'] == 0.5
-        assert result['thinking_level'] == 'off'
+        assert result['thinking_level'] == 'auto'
         assert result['include_thoughts'] is False
 
     def test_enum_serialized_to_string(self):
