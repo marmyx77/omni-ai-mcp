@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.5] - 2026-09-19
+
+### Fixed
+- **A timed-out Deep Research could never be retrieved.** The timeout message said "use continuation_id", but `continuation_id` always started a *new* research chained to the previous one, so the finished report stayed unreachable — and since research routinely takes longer than the wait, this was the second half of the recurring pain. Now `gemini_deep_research` has three modes: `query` alone starts a research; `continuation_id` alone **retrieves** that research's report, waiting if it is still running; both together start a follow-up chained to a *completed* research (with a still-running one, the query is ignored and the wait resumes, so repeating the original query after a timeout is safe). The timeout message spells out the empty-query retrieval. Verified live on the interaction that had timed out: report with 3 sources retrieved in one call.
+- `query` is no longer required by the MCP schema; Pydantic enforces "query (>= 10 chars) or continuation_id".
+
 ## [4.6.4] - 2026-09-19
 
 ### Fixed
@@ -12,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - the agent is resolved **per call** from the model registry (`deep_research` category: newest `deep-research-preview-MM-YYYY` the API exposes, or `GEMINI_MODEL_DEEP_RESEARCH`), no longer frozen at import;
   - errors now carry the real API message, the agent ID and the **package version that answered** (`format_deep_research_error`), and a stale `continuation_id` is reported as such instead of as a missing agent;
   - the recommended local install is now **editable** (`pip install -e .`), so sessions always run the checked-out code after a `git pull` — no reinstall step to forget.
-- Verified live: `deep-research-preview-04-2026` and `-max-` both create background interactions; a full 8-minute run from the working tree returned a report with sources.
+- Verified live: `deep-research-preview-04-2026` and `-max-` both create background interactions. An 8-minute run from the working tree **timed out** (the research needed ~10 min) — which exposed the retrieval gap fixed in 4.6.5; the report was retrieved afterwards with that fix. (This line originally claimed the run had returned a report: corrected on the same day.)
 
 ## [4.6.3] - 2026-09-19
 

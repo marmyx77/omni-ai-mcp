@@ -169,7 +169,7 @@ def gemini_web_search(
 
 @mcp.tool()
 def gemini_deep_research(
-    query: str,
+    query: str = "",
     max_wait_minutes: int = 30,
     continuation_id: Optional[str] = None
 ) -> str:
@@ -189,9 +189,9 @@ def gemini_deep_research(
     Note: Research typically takes 5-30 minutes depending on complexity.
 
     Args:
-        query: Research topic or question. Be specific for best results.
-        max_wait_minutes: Maximum wait time (5-60 minutes, default: 30)
-        continuation_id: Optional interaction ID to continue previous research
+        query: Research topic or question. Be specific for best results. Leave empty with continuation_id to retrieve a previous research (e.g. after a timeout).
+        max_wait_minutes: Maximum wait time (5-60 minutes, default: 30). On timeout the research keeps running: call again with continuation_id and no query.
+        continuation_id: Previous interaction ID. Empty query = retrieve/resume it; with a query = follow-up research chained to it
 
     Returns:
         Comprehensive research report with citations
