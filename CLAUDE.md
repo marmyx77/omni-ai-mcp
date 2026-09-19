@@ -147,7 +147,16 @@ echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | GEMINI_API_KEY=your_key 
 ./setup.sh YOUR_API_KEY
 ```
 
-### Reinstall after changes
+### Execution nodes (e.g. the Minisforum): install a GitHub tag, never a checkout
+Machines that only *run* the server take a **release tag from GitHub**, through the script versioned in this repo. Updating both machines = same tag on both.
+```bash
+curl -fsSL https://raw.githubusercontent.com/marmyx77/omni-ai-mcp/main/scripts/install_release.sh | bash            # latest tag
+curl -fsSL https://raw.githubusercontent.com/marmyx77/omni-ai-mcp/main/scripts/install_release.sh | bash -s v4.6.5  # a specific tag
+bash scripts/install_release.sh --status                                                                            # installed vs latest
+```
+It creates/reuses `~/.claude-mcp-servers/omni-ai-mcp/venv`, pip-installs `omni-ai-mcp @ git+…@<tag>`, and rewrites `mcpServers.omni-ai-mcp` in `~/.claude.json` (`<venv>/bin/python3 -m app.server`, env block preserved, backup taken). No clone, no editable install, nothing copied by hand on an execution node.
+
+### Reinstall after changes (dev machine)
 Claude Code starts the server as `python3.14 -m app.server` **without a cwd** (`~/.claude.json` → `mcpServers.omni-ai-mcp`), so every session outside this repo imports the package from site-packages. Install it **editable** once, and sessions run whatever is checked out here:
 ```bash
 /opt/homebrew/opt/python@3.14/bin/python3.14 -m pip install --break-system-packages --no-deps -e .
