@@ -640,6 +640,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 
 ## Changelog
 
+### v4.6.5
+- Deep Research: `continuation_id` with an empty query retrieves/resumes a previous research (timed-out reports were unreachable before); with a query it chains a follow-up
+
 ### v4.6.4
 - Deep Research: agent resolved per call from the registry; errors name the API message, agent and package version; editable install recommended so sessions never run stale code
 

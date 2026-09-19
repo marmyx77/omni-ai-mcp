@@ -6,7 +6,7 @@ from typing import Optional, List, Literal
 from enum import Enum
 
 try:
-    from pydantic import BaseModel, Field, field_validator
+    from pydantic import BaseModel, Field, model_validator, field_validator
     PYDANTIC_AVAILABLE = True
 except ImportError:
     PYDANTIC_AVAILABLE = False
@@ -16,6 +16,10 @@ except ImportError:
     def Field(*args, **kwargs):
         return None
     def field_validator(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    def model_validator(*args, **kwargs):
         def decorator(func):
             return func
         return decorator
@@ -228,10 +232,9 @@ class DeepResearchInput(BaseModel):
     """Schema for gemini_deep_research tool input."""
 
     query: str = Field(
-        ...,
-        min_length=10,
+        default="",
         max_length=5000,
-        description="Research topic or question. Be specific for best results."
+        description="Research topic or question (>= 10 chars). Empty with continuation_id = retrieve/resume that research."
     )
     max_wait_minutes: int = Field(
         default=30,
@@ -241,8 +244,16 @@ class DeepResearchInput(BaseModel):
     )
     continuation_id: Optional[str] = Field(
         default=None,
-        description="Interaction ID to continue previous research session"
+        description="Previous interaction ID: retrieve it (empty query) or chain a follow-up (with query)"
     )
+
+    @model_validator(mode="after")
+    def _query_or_continuation(self):
+        if self.query and len(self.query) < 10:
+            raise ValueError("query must be at least 10 characters")
+        if not self.query and not self.continuation_id:
+            raise ValueError("provide a query or a continuation_id")
+        return self
 
 
 # =============================================================================
