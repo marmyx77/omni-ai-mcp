@@ -59,6 +59,12 @@
       "flags": "i",
       "reason": "model removed upstream (404), replaced by deep-research-preview-04-2026 in v4.4.0; citing it as current is stale. Allowed only in historical zones or with the allow-marker",
       "since": "2026-06-12"
+    },
+    {
+      "pattern": "\\b\\d+\\s+(unit\\s+|integration\\s+)?tests?\\s+(passing|pass|green)\\b",
+      "flags": "i",
+      "reason": "hardcoded test-pass counts drift on every commit (103→174→187 between v4.0.1 and v4.6.0, found stale on 2026-09-19); run pytest for the number, never write it. Allowed in historical zones (CHANGELOG, README Changelog)",
+      "since": "2026-09-19"
     }
   ],
 

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-<!-- doc-status: current | updated: 2026-07-05 -->
+<!-- doc-status: current | updated: 2026-09-19 -->
 
 This file provides context to Claude Code when working with this repository.
 
@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.5.0
+**Version:** 4.6.0
 **SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + FastMCP + filelock
-**Architecture:** Modular package structure with SQLite persistence, dynamic model registry, and multi-provider routing
+**Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.5.0)
+## Architecture (v4.6.0)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -36,7 +36,7 @@ omni-ai-mcp/
 │   ├── services/            # External service integrations
 │   │   ├── __init__.py      # Service exports
 │   │   ├── gemini.py        # Gemini client wrapper, generate_with_fallback()
-│   │   ├── model_registry.py # Dynamic model discovery, cache, fallback (NEW v4.0)
+│   │   ├── model_registry.py # Auto-detects newest model per category from the live API (v4.6)
 │   │   ├── openrouter.py    # OpenRouter client, 400+ models (NEW v4.0)
 │   │   └── persistence.py   # SQLite conversation storage + conversation index
 │   │
@@ -96,7 +96,7 @@ omni-ai-mcp/
 | Security | `app/core/security.py` | Sandboxing, sanitization, safe writes, cross-platform file locking |
 | Tool Registry | `app/tools/registry.py` | @tool decorator, tool discovery |
 | Gemini Client | `app/services/gemini.py` | API wrapper with generate_with_fallback() |
-| Model Registry | `app/services/model_registry.py` | Dynamic discovery of 44+ models, cache TTL 1h, auto-fallback |
+| Model Registry | `app/services/model_registry.py` | Lists live models (cache 1h), picks the newest per category by version; env override > auto > fallback |
 | OpenRouter Client | `app/services/openrouter.py` | 400+ models via OpenRouter API |
 | Persistence | `app/services/persistence.py` | SQLite conversation storage + conversation index |
 
@@ -105,25 +105,25 @@ omni-ai-mcp/
 | Tool | Description | Default Model |
 |------|-------------|---------------|
 | `ask_model` | **NEW** Multi-provider routing: Gemini + 400+ via OpenRouter | auto-detected |
-| `gemini_list_models` | **NEW** Live model catalog with deprecation warnings | - |
-| `ask_gemini` | Text generation with thinking + dual mode (local/cloud) | Gemini 3.1 Pro |
-| `gemini_code_review` | Code analysis | Gemini 3.1 Pro |
-| `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | Gemini 3.1 Pro |
-| `gemini_challenge` | Critical thinking / Devil's Advocate | Gemini 3.1 Pro |
-| `gemini_web_search` | Google-grounded search | Gemini 3.5 Flash |
+| `gemini_list_models` | Live model catalog: resolved ID per category + provenance | - |
+| `ask_gemini` | Text generation with thinking + dual mode (local/cloud) | newest Gemini Pro |
+| `gemini_code_review` | Code analysis | newest Gemini Pro |
+| `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | newest Gemini Pro |
+| `gemini_challenge` | Critical thinking / Devil's Advocate | newest Gemini Pro |
+| `gemini_web_search` | Google-grounded search | newest Gemini Flash |
 | `gemini_deep_research` | Autonomous multi-step research (5-60 min) | Deep Research Agent |
 | `gemini_list_conversations` | **NEW** List conversations with title, mode, activity | - |
 | `gemini_delete_conversation` | **NEW** Delete conversations by ID or title | - |
-| `gemini_file_search` | RAG document queries | Gemini 3.5 Flash |
+| `gemini_file_search` | RAG document queries | newest Gemini Flash |
 | `gemini_create_file_store` | Create RAG stores | - |
 | `gemini_upload_file` | Upload to RAG stores | - |
 | `gemini_list_file_stores` | List RAG stores | - |
-| `gemini_analyze_image` | Image analysis (vision) | Gemini 3.5 Flash |
-| `gemini_generate_image` | Image generation | Gemini 3 Pro Image |
-| `gemini_generate_video` | Video generation (sync polling) | Veo 3.1 |
-| `gemini_text_to_speech` | TTS with 30 voices | Gemini 3.1 Flash TTS |
-| `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | Gemini 3.1 Pro |
-| `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | Gemini 3.1 Pro |
+| `gemini_analyze_image` | Image analysis (vision) | newest Gemini Flash |
+| `gemini_generate_image` | Image generation | newest Gemini Pro Image |
+| `gemini_generate_video` | Video generation (sync polling) | newest Veo |
+| `gemini_text_to_speech` | TTS with 30 voices | newest Gemini Flash TTS |
+| `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | newest Gemini Pro |
+| `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | newest Gemini Pro |
 
 
 ## Development Commands
@@ -185,7 +185,7 @@ python3 -m pytest tests/unit/ -v
 # app/tools/domain/my_tool.py
 
 from ...tools.registry import tool
-from ...services import client, types, generate_with_fallback
+from ...services import client, types, generate_with_fallback, MODELS
 from ...core import log_activity
 
 MY_TOOL_SCHEMA = {
@@ -216,7 +216,7 @@ def my_tool(param: str, optional: str = "default") -> str:
     """
     try:
         response = generate_with_fallback(
-            model_id=model_registry.resolve("text_pro"),  # dynamic resolution
+            model_id=MODELS["pro"],  # lazy: newest Pro the API exposes (or GEMINI_MODEL_PRO)
             contents=param,
             config=types.GenerateContentConfig(temperature=0.5),
             operation="my_tool"
@@ -257,11 +257,12 @@ class MyToolInput(BaseModel):
 | `GEMINI_CONVERSATION_TTL_HOURS` | 3 | Thread expiration |
 | `GEMINI_CONVERSATION_MAX_TURNS` | 50 | Max turns per thread |
 | `GEMINI_DISABLED_TOOLS` | - | Comma-separated tool names to disable |
-| `GEMINI_MODEL_PRO` | gemini-3.1-pro-preview | Override Pro model |
-| `GEMINI_MODEL_FLASH` | gemini-3.5-flash | Override Flash model |
-| `GEMINI_MODEL_IMAGE_PRO` | gemini-3-pro-image | Override Image model |
-| `GEMINI_MODEL_VEO31` | veo-3.1-generate-preview | Override Veo 3.1 model |
-| `GEMINI_MODEL_TTS_FLASH` | gemini-3.1-flash-tts-preview | Override TTS model |
+| `GEMINI_MODEL_AUTODETECT` | true | Newest model per category from the live API; `false` = static fallbacks |
+| `GEMINI_MODEL_PRO` / `_FLASH` / `_FLASH_LITE` | auto-detected | Pin a text model (explicit value always wins) |
+| `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` | auto-detected | Pin an image model |
+| `GEMINI_MODEL_VEO31` / `_VEO31_FAST` / `_VEO31_LITE` | auto-detected | Pin a video model |
+| `GEMINI_MODEL_TTS_FLASH` / `_TTS_PRO` | auto-detected | Pin a TTS model |
+| `GEMINI_MODEL_DEEP_RESEARCH` | auto-detected | Pin the research agent |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
 | `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
 | `OPENROUTER_TIMEOUT` | 120 | OpenRouter generation timeout in seconds (search models need headroom) |
@@ -524,7 +525,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->10<!--/fact--> unit + <!--fact:integration-test-files-->5<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file).
+Test files: <!--fact:unit-test-files-->10<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -536,12 +537,14 @@ tests/
 │   ├── test_validate_path.py      # Path traversal prevention
 │   ├── test_pydantic_schemas.py   # Input validation
 │   ├── test_secrets_sanitizer.py  # Secret detection patterns
-│   └── test_ask_model.py          # Multi-provider routing (37 tests)
+│   ├── test_model_registry.py     # Auto-detect ranking, env override, cache, fallbacks
+│   ├── test_openrouter_client.py  # OpenRouter client, citations
+│   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
-    ├── test_fastmcp_server.py     # FastMCP initialization (16 tests)
-    ├── test_mcp_tools.py          # Tool signatures & schemas (32 tests)
-    ├── test_sqlite_persistence.py # SQLite storage (26 tests)
-    ├── test_security_v3.py        # Security features (26 tests)
+    ├── test_fastmcp_server.py     # FastMCP initialization
+    ├── test_mcp_tools.py          # Tool signatures & schemas
+    ├── test_sqlite_persistence.py # SQLite storage
+    ├── test_security_v3.py        # Security features
     └── real_outputs/              # Live MCP tool call outputs
 ```
 
@@ -652,6 +655,17 @@ docker-compose --profile monitoring up -d
 - Resource limits (2 CPU, 2GB RAM)
 - Log rotation (10MB max, 3 files)
 
+## Model Resolution (v4.6.0)
+
+`MODELS`, `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS` in `app/services/gemini.py` are lazy maps: each lookup asks `model_registry.resolve(category)`. Order per category:
+
+1. **env override** — `GEMINI_MODEL_*` set explicitly (never validated against the API: the user's call)
+2. **auto-detect** — newest model in the live `models.list()` whose ID matches the category's anchored regex (`CATEGORY_SPECS`), ranked by `(major, minor, stable-over-preview)`
+3. **static fallback** — first `fallbacks` entry the API exposes (or the first one if discovery failed)
+4. **config default** — same value the env var would default to (emits a `RuntimeWarning`)
+
+Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts` variants never leak into the text categories. Discovery is cached 1 h (5 min back-off on failure). Never hardcode a model ID in a tool: add a category to `CATEGORY_SPECS` instead.
+
 ## Gemini API Nuances
 
 ### Thinking Mode
@@ -698,7 +712,13 @@ docker-compose --profile monitoring up -d
 
 ## Roadmap
 
-### v4.5.0 (Current) - OpenRouter Citations + Timeout
+### v4.6.0 (Current) - Model Auto-Detection
+- ✅ Registry picks the newest model per category from the live API (version-aware, stable > preview); tools resolve lazily through `MODELS` maps
+- ✅ `gemini_list_models` reports provenance (auto / env / fallback) and runners-up
+- ✅ `flash-lite` + `veo31_lite` aliases; Veo 3.0 / 2.0 dropped (removed upstream)
+- ✅ 34 dead integration tests removed; CI integration job no longer `continue-on-error`
+
+### v4.5.0 (Released) - OpenRouter Citations + Timeout
 - ✅ `ask_model` appends a **Sources** section from OpenRouter citations (Perplexity `citations` + OpenAI-style `url_citation` annotations)
 - ✅ `OPENROUTER_TIMEOUT` env var (default 120s, was hardcoded 30s) — enables `perplexity/sonar-*` search models
 
@@ -710,7 +730,7 @@ docker-compose --profile monitoring up -d
 
 ### v4.0.1 (Released) - Bug Fixes + CI
 - ✅ Python 3.11 SyntaxError fix in `challenge.py`
-- ✅ All 174 unit tests passing (stale imports fixed)
+- ✅ Unit suite green again (stale imports fixed)
 - ✅ Model registry names corrected (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`)
 - ✅ `ask_model` routing: Gemini model + `provider='openrouter'` → native API when key available
 

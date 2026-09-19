@@ -6,35 +6,60 @@ It handles client initialization, model mappings, and API calls with fallback.
 """
 
 import os
-from typing import Any, Optional
+from collections.abc import Mapping
+from typing import Any, Dict, Iterator, Optional
 
 from ..core import config, log_progress
 
-# Model configurations - uses config values for easy updates via environment variables
-# See config.py for default values and GEMINI_MODEL_* env vars to override
-MODELS = {
-    "pro": config.model_pro,              # Best for reasoning, coding, complex tasks
-    "flash": config.model_flash,          # Balanced speed/quality for standard tasks
-    "fast": config.model_flash,           # High-volume, simple tasks (same as flash)
-}
+# Model maps resolve lazily through the dynamic registry (v4.6.0): every
+# lookup returns the newest matching model the API exposes, or the explicit
+# GEMINI_MODEL_* override, or the static config fallback. Tools keep using
+# MODELS.get(alias, MODELS["pro"]) exactly as before.
+from .model_registry import model_registry
 
-IMAGE_MODELS = {
-    "pro": config.model_image_pro,        # High quality, 4K, thinking mode
-    "flash": config.model_image_flash,    # Fast generation
-}
 
-VIDEO_MODELS = {
-    "veo31": config.model_veo31,               # Best quality, 8s, 720p/1080p, audio
-    "veo31_fast": config.model_veo31_fast,     # Faster, optimized for speed
-    "veo3": config.model_veo3,                 # Stable, 8s with audio
-    "veo3_fast": config.model_veo3_fast,       # Fast stable version
-    "veo2": config.model_veo2,                 # Legacy, no audio
-}
+class _LazyModelMap(Mapping):
+    """Read-only alias → model-ID map backed by the model registry."""
 
-TTS_MODELS = {
-    "flash": config.model_tts_flash,      # Fast TTS
-    "pro": config.model_tts_pro,          # Higher quality TTS
-}
+    def __init__(self, aliases: Dict[str, str]) -> None:
+        self._aliases = dict(aliases)  # alias → registry category
+
+    def __getitem__(self, alias: str) -> str:
+        return model_registry.resolve(self._aliases[alias])
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._aliases)
+
+    def __len__(self) -> int:
+        return len(self._aliases)
+
+    def category(self, alias: str) -> str:
+        """Registry category behind an alias (raises KeyError if unknown)."""
+        return self._aliases[alias]
+
+
+MODELS = _LazyModelMap({
+    "pro": "text_pro",            # Best for reasoning, coding, complex tasks
+    "flash": "text_flash",        # Balanced speed/quality for standard tasks
+    "fast": "text_flash",         # High-volume, simple tasks (same as flash)
+    "flash-lite": "text_flash_lite",
+})
+
+IMAGE_MODELS = _LazyModelMap({
+    "pro": "image",               # High quality, 4K, thinking mode
+    "flash": "image_flash",       # Fast generation
+})
+
+VIDEO_MODELS = _LazyModelMap({
+    "veo31": "video",             # Best quality, 8s, 720p/1080p, audio
+    "veo31_fast": "video_fast",   # Faster, optimized for speed
+    "veo31_lite": "video_lite",   # Cheapest, 720p
+})
+
+TTS_MODELS = _LazyModelMap({
+    "flash": "tts",               # Fast TTS
+    "pro": "tts_pro",             # Higher quality TTS
+})
 
 TTS_VOICES = {
     "Zephyr": "Bright",

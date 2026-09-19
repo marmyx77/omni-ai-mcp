@@ -107,29 +107,6 @@ def sample_need_files_json():
 
 
 @pytest.fixture
-def mock_gemini_client():
-    """Mock Gemini client for offline testing."""
-    with patch('server.client') as mock_client:
-        mock_response = Mock()
-        mock_response.text = "Mock Gemini response"
-        mock_response.candidates = []
-        mock_client.models.generate_content.return_value = mock_response
-        yield mock_client
-
-
-@pytest.fixture
-def mock_conversation_memory():
-    """Mock conversation memory for testing."""
-    with patch('server.conversation_memory') as mock_memory:
-        mock_thread = Mock()
-        mock_thread.is_expired.return_value = False
-        mock_thread.can_add_turn.return_value = True
-        mock_thread.build_context.return_value = "Previous context"
-        mock_memory.get_or_create_thread.return_value = ("test-id", True, mock_thread)
-        yield mock_memory
-
-
-@pytest.fixture
 def disable_logging():
     """Disable activity logging for tests."""
     old_value = os.environ.get("GEMINI_ACTIVITY_LOG")

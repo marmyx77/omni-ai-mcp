@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2026-09-19
+
+### Added
+- **Model auto-detection.** `ModelRegistry` now ranks the models returned by `models.list()` per category (`CATEGORY_SPECS`: anchored regex + version key) and picks the newest one, stable preferred over preview at the same version. Text `flash` resolved to `gemini-3.8-flash` and `flash-lite` to `gemini-3.5-flash-lite` on the day of release without either ID appearing in a priority list. Order: `GEMINI_MODEL_*` env override → auto-detect → static fallback → config default. `GEMINI_MODEL_AUTODETECT=false` restores the static behaviour.
+- `MODELS`, `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS` are now lazy maps resolved through the registry on every lookup. Previously they were frozen at import from `config.model_*`, so the "dynamic registry" shipped in v4.0.0 was only used by `ask_model` short names — every other tool was on static IDs.
+- `gemini_list_models` reports the provenance of each resolved model (auto-detected / env override / static fallback / config default), the runners-up, and the number of models discovered.
+- `flash-lite` alias for `ask_gemini` / `ask_model`; `veo31_lite` for `gemini_generate_video`. New env vars `GEMINI_MODEL_FLASH_LITE`, `GEMINI_MODEL_VEO31_LITE`, `GEMINI_MODEL_AUTODETECT`.
+- Failed discovery backs off for 5 minutes instead of retrying on every call.
+
+### Removed
+- Veo 3.0 / 2.0 aliases (`veo3`, `veo3_fast`, `veo2`) and their env vars: the models are no longer exposed by the API (404).
+- `tests/integration/test_backward_compat.py` and two sibling tests: they imported a root `server.py` shim deleted in v3.1.0 and checked an `app/__main__.py` that no longer exists. 34 tests had been failing on every CI run since, hidden by `continue-on-error`.
+
+### Fixed
+- CI: the integration job no longer has `continue-on-error`; the integration suite is hermetic and a failure is now red.
+- Stale "174 unit tests passing" claims replaced by non-numeric wording; a virgilio rule now bans hardcoded test-pass counts outside historical zones.
+
 ## [4.5.0] - 2026-07-05
 
 ### Added

@@ -152,11 +152,3 @@ class TestServerEntry:
         assert "from app import main" in content or "from app.server import main" in content
         assert "__name__" in content
         assert "main()" in content
-
-    def test_backward_compat_server_imports(self):
-        """server.py backward compatibility works."""
-        import server
-        assert hasattr(server, 'validate_path')
-        assert hasattr(server, 'SafeFileWriter')
-        assert hasattr(server, 'SANDBOX_ROOT')
-        assert hasattr(server, 'SANDBOX_ENABLED')
