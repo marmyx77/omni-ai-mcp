@@ -329,3 +329,20 @@ class TestFileStoreTool:
         """gemini_list_file_stores is registered."""
         from app.server import mcp
         assert "gemini_list_file_stores" in mcp._tool_manager._tools
+
+
+class TestTranscribeAudioTool:
+    """gemini_transcribe_audio tool tests (v4.7.0)."""
+
+    def test_tool_registered(self):
+        from app.server import mcp
+        assert "gemini_transcribe_audio" in mcp._tool_manager._tools
+
+    def test_signature(self):
+        import inspect
+        from app.server import gemini_transcribe_audio
+        params = inspect.signature(gemini_transcribe_audio).parameters
+        assert list(params)[0] == "audio_path"
+        for name in ("diarization", "word_timestamps", "language_codes", "vocabulary", "mode", "output_path"):
+            assert name in params
+        assert params["mode"].default == "auto"

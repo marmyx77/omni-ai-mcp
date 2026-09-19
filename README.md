@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version 4.6.5](https://img.shields.io/badge/version-4.6.5-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
+[![Version 4.7.0](https://img.shields.io/badge/version-4.7.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
 [![PyPI](https://img.shields.io/badge/PyPI-omni--ai--mcp-blue.svg)](https://pypi.org/project/omni-ai-mcp/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
@@ -28,6 +28,10 @@ Claude is exceptional at reasoning and code generation. But sometimes you need m
 omni-ai-mcp bridges Claude Code with Google Gemini and OpenRouter, enabling Claude to orchestrate any AI model as a tool.
 
 ---
+
+## What's New in v4.7.0
+
+**`gemini_transcribe_audio`.** Speech to text with Gemini's dedicated transcription model (`gemini-3.5-transcribe` today, newest auto-detected): 85+ languages detected automatically with code-switching, optional speaker diarization, word-level timestamps rendered as timestamped sentences, custom vocabulary, `smart` (fillers removed, numbers and dates formatted) or `verbatim` mode (`auto` picks verbatim when timestamps are on, as the API requires). Files up to 1 hour; large files go through the Files API transparently. Save the transcript as text or structured JSON with `output_path`. Requires `google-genai >= 2.20.0`.
 
 ## What's New in v4.6.0
 
@@ -85,7 +89,7 @@ Install with one click — no Python setup required:
 1. Download `omni-ai-mcp-vX.Y.Z.dxt` from [GitHub Releases](https://github.com/marmyx77/omni-ai-mcp/releases)
 2. Double-click the file (macOS/Windows) or drag it into Claude Desktop
 3. Enter your Gemini API key when prompted (OpenRouter key is optional)
-4. Done — all 20 tools are immediately available in Claude Desktop
+4. Done — all 21 tools are immediately available in Claude Desktop
 
 The `.dxt` bundle includes all Python dependencies — users don't need to install anything else.
 
@@ -134,6 +138,7 @@ The `.dxt` bundle includes all Python dependencies — users don't need to insta
 | `gemini_generate_image` | Imagen — up to 4K resolution | newest Gemini Pro Image |
 | `gemini_generate_video` | Veo — 4-8s with native audio (dialogue, effects, ambient) | newest Veo |
 | `gemini_text_to_speech` | 30 natural voices, multi-speaker dialogue | newest Gemini Flash TTS |
+| `gemini_transcribe_audio` | Speech to text: 85+ languages, speaker diarization, word timestamps, custom vocabulary, up to 1 h | newest Gemini Transcribe |
 
 ### Conversation
 | Tool | Description |
@@ -195,7 +200,7 @@ It creates `~/.claude-mcp-servers/omni-ai-mcp/venv`, installs `omni-ai-mcp @ git
 ### Manual Install
 
 ```bash
-pip install 'mcp[cli]>=1.0.0,<2' 'google-genai>=2.0.0' pydantic defusedxml filelock
+pip install 'mcp[cli]>=1.0.0,<2' 'google-genai>=2.20.0' pydantic defusedxml filelock
 
 mkdir -p ~/.claude-mcp-servers/omni-ai-mcp
 cp -r app/ run.py pyproject.toml ~/.claude-mcp-servers/omni-ai-mcp/
@@ -437,6 +442,7 @@ All settings via environment variables:
 | `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` | auto-detected | Pin an image model |
 | `GEMINI_MODEL_VEO31` / `_VEO31_FAST` / `_VEO31_LITE` | auto-detected | Pin a video model |
 | `GEMINI_MODEL_TTS_FLASH` / `_TTS_PRO` | auto-detected | Pin a TTS model |
+| `GEMINI_MODEL_TRANSCRIBE` | auto-detected | Pin the speech-to-text model |
 | `GEMINI_MODEL_DEEP_RESEARCH` | auto-detected | Pin the research agent |
 | `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Default OpenRouter model |
 | `OPENROUTER_TIMEOUT` | `120` | OpenRouter generation timeout in seconds (raise for search models like `perplexity/sonar-deep-research`) |
@@ -650,6 +656,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 ---
 
 ## Changelog
+
+### v4.7.0
+- `gemini_transcribe_audio`: speech to text (85+ languages, diarization, word timestamps, vocabulary, smart/verbatim); `google-genai>=2.20.0`
 
 ### v4.6.5
 - Deep Research: `continuation_id` with an empty query retrieves/resumes a previous research (timed-out reports were unreachable before); with a query it chains a follow-up

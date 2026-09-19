@@ -92,7 +92,7 @@ def setup_claude() -> None:
     print("  gemini_brainstorm, gemini_challenge, gemini_web_search,")
     print("  gemini_deep_research, gemini_analyze_codebase, gemini_generate_code,")
     print("  gemini_generate_image, gemini_generate_video, gemini_text_to_speech,")
-    print("  gemini_file_search, and more (20 tools total)")
+    print("  gemini_file_search, and more (21 tools total)")
 
 
 if __name__ == "__main__":

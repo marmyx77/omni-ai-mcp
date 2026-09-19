@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "omni-ai-mcp"
-version = "4.6.5"
+version = "4.7.0"
 description = "Multi-AI MCP bridge: Gemini + OpenRouter (400+ models) — text, code, image, video, TTS, RAG, Deep Research"
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
     "mcp[cli]>=1.0.0,<2",  # 2.x (2026-09) removed mcp.server.fastmcp; migration tracked in the roadmap
-    "google-genai>=2.0.0",
+    "google-genai>=2.20.0",  # audio_transcription_config + SMART/VERBATIM mode (transcribe tool)
     "pydantic>=2.0.0",
     "defusedxml>=0.7.1",
     "filelock>=3.0.0",

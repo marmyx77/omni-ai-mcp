@@ -17,7 +17,7 @@ class Config:
     """
 
     # Version
-    version: str = "4.6.5"
+    version: str = "4.7.0"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
@@ -61,6 +61,10 @@ class Config:
     )
     model_tts_pro: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_PRO", "gemini-2.5-pro-preview-tts")
+    )
+    # Speech-to-text
+    model_transcribe: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_TRANSCRIBE", "gemini-3.5-transcribe")
     )
     # Research Agent
     model_deep_research: str = field(

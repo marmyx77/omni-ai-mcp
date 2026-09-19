@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-09-19
+
+### Added
+- **`gemini_transcribe_audio`** — speech to text with Gemini's dedicated transcription models (new registry category `transcribe`: newest `gemini-X.Y-transcribe` the API exposes, `gemini-3.5-transcribe` today; the `-live` WebSocket variant is excluded). Options: `diarization` (speaker labels, up to 8), `word_timestamps` (rendered as `[mm:ss.s]` sentences, split on sentence end or speaker change), `language_codes` hints (auto-detect otherwise, 85+ languages), `vocabulary` (custom terms; not combinable with diarization, upstream rule), `mode` `auto` (default: smart, or verbatim when timestamps are on — the API rejects SMART + word timestamps with a 400 the model card does not mention), `smart` (fillers removed, numbers/dates formatted) or `verbatim`, `output_path` (`.json` → text + segments + words, else formatted text). Files ≤ 15 MB are sent inline; larger ones go through the Files API (upload, wait ACTIVE, delete after). Supported: wav, mp3, m4a, aac, ogg, opus, flac, aiff, webm. Verified live on a 14.6 s Italian TTS sample: plain, diarized+timestamped verbatim, vocabulary+JSON export, and the Files API path.
+- `GEMINI_MODEL_TRANSCRIBE` env var. Tool count is now 21.
+
+### Changed
+- **`google-genai >= 2.20.0`** (was 2.0.0): `GenerateContentConfig.audio_transcription_config` arrived in 2.14/2.15 and the SMART/VERBATIM `mode` in 2.19/2.20. The tool checks for the field at call time and returns an explicit "upgrade the SDK" error on older versions. `response.text` is empty for plain transcriptions, so the tool always reads `part.audio_transcription`.
+
 ## [4.6.5] - 2026-09-19
 
 ### Fixed

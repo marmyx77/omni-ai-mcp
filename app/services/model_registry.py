@@ -118,6 +118,13 @@ CATEGORY_SPECS: Dict[str, CategorySpec] = {
         env_var="GEMINI_MODEL_TTS_PRO",
         config_attr="model_tts_pro",
     ),
+    "transcribe": CategorySpec(
+        # dedicated speech-to-text models; the -live variant (WebSocket) is excluded by the anchor
+        pattern=r"^gemini-(\d+)(?:\.(\d+))?-transcribe(?:-preview)?$",
+        fallbacks=["gemini-3.5-transcribe"],
+        env_var="GEMINI_MODEL_TRANSCRIBE",
+        config_attr="model_transcribe",
+    ),
     "deep_research": CategorySpec(
         # deep-research-preview-MM-YYYY → rank by (year, month)
         pattern=r"^deep-research-preview-(\d{2})-(\d{4})$",

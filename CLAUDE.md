@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.6.5
-**SDK:** google-genai >= 2.0.0 (Interactions API, 'steps' schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
+**Version:** 4.7.0
+**SDK:** google-genai >= 2.20.0 (Interactions API 'steps' schema, audio_transcription_config) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.6.5)
+## Architecture (v4.7.0)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -24,7 +24,7 @@ omni-ai-mcp/
 ├── pyproject.toml            # Package configuration
 ├── app/
 │   ├── __init__.py          # Package init, exports main(), __version__
-│   ├── server.py            # FastMCP server (20 tools with @mcp.tool())
+│   ├── server.py            # FastMCP server (21 tools with @mcp.tool())
 │   ├── cli.py               # Setup wizard CLI (omni-ai-mcp-setup)
 │   │
 │   ├── core/                # Infrastructure & cross-cutting concerns
@@ -58,7 +58,8 @@ omni-ai-mcp/
 │   │   │   ├── analyze_image.py  # Vision analysis
 │   │   │   ├── generate_image.py # Imagen image generation
 │   │   │   ├── generate_video.py # Veo video generation
-│   │   │   └── text_to_speech.py # TTS with 30 voices
+│   │   │   ├── text_to_speech.py # TTS with 30 voices
+│   │   │   └── transcribe_audio.py # Speech to text: diarization, timestamps, vocabulary (v4.7)
 │   │   ├── web/             # Web tools
 │   │   │   ├── web_search.py     # Google-grounded search
 │   │   │   └── deep_research.py  # Deep Research Agent (Interactions API)
@@ -90,7 +91,7 @@ omni-ai-mcp/
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | Entry Point | `run.py` | Wrapper that imports and runs `app.main()` |
-| FastMCP Server | `app/server.py` | FastMCP server with 20 `@mcp.tool()` registrations |
+| FastMCP Server | `app/server.py` | FastMCP server with 21 `@mcp.tool()` registrations |
 | Config | `app/core/config.py` | Environment variables, defaults, version, model IDs |
 | Logging | `app/core/logging.py` | StructuredLogger with JSON support |
 | Security | `app/core/security.py` | Sandboxing, sanitization, safe writes, cross-platform file locking |
@@ -100,7 +101,7 @@ omni-ai-mcp/
 | OpenRouter Client | `app/services/openrouter.py` | 400+ models via OpenRouter API |
 | Persistence | `app/services/persistence.py` | SQLite conversation storage + conversation index |
 
-### Available Tools (20)
+### Available Tools (21)
 
 | Tool | Description | Default Model |
 |------|-------------|---------------|
@@ -122,6 +123,7 @@ omni-ai-mcp/
 | `gemini_generate_image` | Image generation | newest Gemini Pro Image |
 | `gemini_generate_video` | Video generation (sync polling) | newest Veo |
 | `gemini_text_to_speech` | TTS with 30 voices | newest Gemini Flash TTS |
+| `gemini_transcribe_audio` | **NEW** Speech to text: diarization, word timestamps, vocabulary, smart/verbatim, ≤ 1 h | newest Gemini Transcribe |
 | `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | newest Gemini Pro |
 | `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | newest Gemini Pro |
 
@@ -272,6 +274,7 @@ class MyToolInput(BaseModel):
 | `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` | auto-detected | Pin an image model |
 | `GEMINI_MODEL_VEO31` / `_VEO31_FAST` / `_VEO31_LITE` | auto-detected | Pin a video model |
 | `GEMINI_MODEL_TTS_FLASH` / `_TTS_PRO` | auto-detected | Pin a TTS model |
+| `GEMINI_MODEL_TRANSCRIBE` | auto-detected | Pin the speech-to-text model |
 | `GEMINI_MODEL_DEEP_RESEARCH` | auto-detected | Pin the research agent |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
 | `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
@@ -538,7 +541,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->14<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
+Test files: <!--fact:unit-test-files-->15<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -555,6 +558,7 @@ tests/
 │   ├── test_deep_research_errors.py # error wording, per-call agent resolution, steps extraction
 │   ├── test_deep_research_resume.py # retrieve / resume / follow-up modes with a fake client
 │   ├── test_version_consistency.py # every stated version == pyproject.toml (badge, plugin.json, manifest, CLAUDE.md)
+│   ├── test_transcribe_audio.py   # transcription config, response → segments, formatting, registry category
 │   ├── test_openrouter_client.py  # OpenRouter client, citations
 │   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
@@ -569,7 +573,7 @@ tests/
 
 - **Before every commit** that touches a doc/plan: `node virgilio/bin/cli.mjs check --config virgilio.config.json` must be **green**. Full rulebook: [DOC_GOVERNANCE.md](DOC_GOVERNANCE.md).
 - **Release status** is never declared "released/published" without the tag on `origin/main` and a green CI run. PyPI/`.dxt` state is external tier (no probe configured): if you can't verify it, write "not verifiable", never "verified".
-- **End of milestone / pre-release / suspected drift**: run the `virgilio/modes/audit.md` playbook (§9, 3 axes vs. reality). Standing §9 items: the MCP tool count (20), roadmap «Planned» sections vs. shipped versions, PyPI publication vs. "released" claims.
+- **End of milestone / pre-release / suspected drift**: run the `virgilio/modes/audit.md` playbook (§9, 3 axes vs. reality). Standing §9 items: the MCP tool count (21), roadmap «Planned» sections vs. shipped versions, PyPI publication vs. "released" claims.
 - **Every false claim you find** that's cleanly mechanizable → a new rule in `virgilio.config.json` + a bite fixture. One-offs stay with the human audit (proportionality).
 - **Per-fact SSOT**: a count/status/version lives in **exactly one** owner doc (map in [DOC_GOVERNANCE.md](DOC_GOVERNANCE.md) §2); elsewhere, LINK to it. Never copy it.
 - **Status flip = Definition of Done**: if a task closes a phase, updating the status is **inside** the task: this file's `doc-status` date + Roadmap section (CI-enforced), and `DEVELOPMENT_ROADMAP.md` («Current Status», Handoff log — internal, git-ignored, checked locally only).
@@ -716,6 +720,12 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - Uses async polling with `asyncio.to_thread()` (v3.0.1)
 - Can take 1-6 minutes to generate
 
+### Audio Transcription (v4.7.0)
+- Model category `transcribe` (`gemini-X.Y-transcribe`; the `-live` WebSocket variant is excluded)
+- Config goes in `GenerateContentConfig.audio_transcription_config` (`AudioTranscriptionConfig`: `diarization`, `word_timestamp`, `language_codes`, `custom_vocabulary`, `mode` SMART/VERBATIM)
+- Read `part.audio_transcription` (text, speaker_label, language_code, words[word,start_offset,end_offset]); `response.text` is EMPTY when no options are set
+- Upstream limits: 1 h per request, 30 min with diarization/timestamps; diarization and vocabulary are mutually exclusive; **SMART mode is rejected together with word timestamps** (400, found live 2026-09-19, not in the model card) → `mode=auto` picks verbatim when timestamps are on; inline audio ≤ 20 MB, above that use the Files API
+
 ### Text-to-Speech
 - 30 voice options with different characteristics
 - Multi-speaker supports up to 2 voices
@@ -733,7 +743,11 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 
 ## Roadmap
 
-### v4.6.x (Current) - Model Auto-Detection
+### v4.7.0 (Current) - Audio Transcription
+- ✅ `gemini_transcribe_audio`: newest `gemini-*-transcribe` via registry category `transcribe`; diarization, word timestamps (timestamped sentences), custom vocabulary, mode auto/smart/verbatim; Files API for large files; `.json`/text export
+- ✅ `google-genai >= 2.20.0` (audio_transcription_config, SMART/VERBATIM mode)
+
+### v4.6.x (Released) - Model Auto-Detection
 - ✅ Registry picks the newest model per category from the live API (version-aware, stable > preview); tools resolve lazily through `MODELS` maps
 - ✅ `gemini_list_models` reports provenance (auto / env / fallback) and runners-up
 - ✅ `flash-lite` + `veo31_lite` aliases; Veo 3.0 / 2.0 dropped (removed upstream)
