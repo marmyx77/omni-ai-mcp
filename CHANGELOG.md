@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.6.1] - 2026-09-19
 
 ### Fixed
-- The v4.6.0 sdist on PyPI shipped a stray working note (`DIAGNOSI-gemini-3.8-flash-sessione-ISMS.md`, left in the checkout by another session; no secrets, not in the wheel). Removed from the repo; this release has a clean sdist.
+- The v4.6.0 sdist on PyPI shipped a stray working note (a `DIAGNOSI-*.md` left in the checkout by another session; no secrets, not in the wheel). Removed from the repo; this release has a clean sdist.
 - `ask_gemini` chose `thinking_level` vs `thinking_budget` on the *alias* (`model == "pro"`), so with auto-detect `flash` → `gemini-3.8-flash` was sent a 2.x-style budget. Now decided on the resolved model ID (`thinking_params_for`): Gemini 2.x → budget, 3+ → level. Verified live that both knobs are accepted by 3.x, so this was a consistency fix, not an outage.
 - `ask_gemini` schema: `flash-lite` alias added; stale "Gemini 3 / 2.5" descriptions replaced by category wording.
 

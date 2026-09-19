@@ -11,6 +11,6 @@ Parameters:
 Result: SUCCESS
 
 Output:
-Image saved to: /Users/marcoarmellino/Development/claudecode-gemini/tests/3.0b/real_outputs/test_image.png
+Image saved to: <repo>/tests/3.0b/real_outputs/test_image.png
 Model: gemini-2.5-flash-image
 Aspect ratio: 1:1

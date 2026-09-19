@@ -147,7 +147,7 @@ echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | GEMINI_API_KEY=your_key 
 ./setup.sh YOUR_API_KEY
 ```
 
-### Execution nodes (e.g. the Minisforum): install a GitHub tag, never a checkout
+### Execution nodes (a home server, a second workstation): install a GitHub tag, never a checkout
 Machines that only *run* the server take a **release tag from GitHub**, through the script versioned in this repo. Updating both machines = same tag on both.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marmyx77/omni-ai-mcp/main/scripts/install_release.sh | bash            # latest tag

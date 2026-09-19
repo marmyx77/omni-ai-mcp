@@ -7,7 +7,7 @@ Result: SUCCESS
 Available stores:
 - test-docs
 - mcp-test-store
-- aworld-screenshots-analysis
+- <a private store>
 - test_v3_docs
 - v3_test_store
 
