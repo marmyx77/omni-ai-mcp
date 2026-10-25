@@ -1,8 +1,12 @@
 """
-Generate Image Tool
+Generate Image Tool (Nano Banana family, v4.8.0)
 
-Image generation and editing using Gemini native image generation.
-Supports text-to-image and image-to-image (editing/transformation).
+- pro: Nano Banana Pro (newest Gemini Pro Image): highest quality, 4K, thinking
+- flash: Nano Banana 2.1 (newest Gemini Flash Image): Flash-speed, 1K/2K/4K,
+  panoramic 1:4, 4:1, 1:8, 8:1, up to 14 reference images, Google Search grounding
+- lite: Nano Banana 2 Lite: lowest latency and cost
+
+Supports text-to-image and image-to-image (editing, fusion, references).
 """
 
 import base64
@@ -24,25 +28,36 @@ GENERATE_IMAGE_SCHEMA = {
         "input_images": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Optional list of input image paths for editing or transformation. Provide one or more existing images to edit, combine, or use as reference. Supports PNG, JPG, JPEG, WEBP."
+            "description": "Optional input images (up to 14) to edit, combine or use as references (character consistency up to 4 people, object fidelity up to 10 objects on flash). PNG, JPG, JPEG, WEBP."
         },
         "model": {
             "type": "string",
-            "enum": ["pro", "flash"],
-            "description": "pro (default): Gemini 3 Pro Image (Nano Banana Pro) - high quality, 4K, thinking mode. flash: Gemini 3.1 Flash Image (Nano Banana 2) - fast generation.",
+            "enum": ["pro", "flash", "lite"],
+            "description": "pro (default): Nano Banana Pro, highest quality. flash: Nano Banana 2.1, fast, panoramic formats, 14 references. lite: Nano Banana 2 Lite, cheapest and fastest. Exact IDs auto-detected.",
             "default": "pro"
         },
         "aspect_ratio": {
             "type": "string",
-            "enum": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-            "description": "Output aspect ratio.",
+            "enum": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1"],
+            "description": "Output aspect ratio. Panoramic 1:4, 4:1, 1:8, 8:1 are for model='flash' (Nano Banana 2.1).",
             "default": "1:1"
         },
         "image_size": {
             "type": "string",
-            "enum": ["1K", "2K", "4K"],
-            "description": "Resolution (only for pro model). 1K=1024px, 2K=2048px, 4K=4096px.",
-            "default": "2K"
+            "enum": ["auto", "512", "1K", "2K", "4K"],
+            "description": "Resolution. auto (default): 2K on pro, the model default (1K) on flash/lite. 4K costs more.",
+            "default": "auto"
+        },
+        "google_search": {
+            "type": "boolean",
+            "description": "Ground the image in Google Search results (facts, current events, real places) for accurate infographics.",
+            "default": False
+        },
+        "thinking_level": {
+            "type": "string",
+            "enum": ["auto", "minimal", "medium", "high"],
+            "description": "Reasoning before drawing (flash: minimal/medium default/high). auto lets the model decide.",
+            "default": "auto"
         },
         "output_path": {
             "type": "string",
@@ -51,6 +66,16 @@ GENERATE_IMAGE_SCHEMA = {
     },
     "required": ["prompt"]
 }
+
+
+MAX_REFERENCE_IMAGES = 14
+
+
+def resolve_image_size(model: str, image_size: str) -> Optional[str]:
+    """auto → 2K on pro (previous default), model default elsewhere; explicit sizes pass through."""
+    if image_size in ("512", "1K", "2K", "4K"):
+        return image_size
+    return "2K" if model == "pro" else None
 
 
 def _load_image_part(image_path: str) -> types.Part:
@@ -73,7 +98,7 @@ def _load_image_part(image_path: str) -> types.Part:
 @tool(
     name="gemini_generate_image",
     description=(
-        "Generate or edit images using Gemini 3 Pro native image generation. "
+        "Generate or edit images with Google's Nano Banana models (Pro, 2.1, 2 Lite). "
         "This model has unique strengths over other image generators: "
         "(1) INFOGRAPHICS WITH ACCURATE DATA — Gemini grounds generation in real-world knowledge, "
         "so data labels, statistics, and facts inside the image are correct; "
@@ -96,15 +121,18 @@ def generate_image(
     input_images: Optional[List[str]] = None,
     model: str = "pro",
     aspect_ratio: str = "1:1",
-    image_size: str = "2K",
-    output_path: Optional[str] = None
+    image_size: str = "auto",
+    output_path: Optional[str] = None,
+    google_search: bool = False,
+    thinking_level: str = "auto",
 ) -> str:
     """
     Generate or edit images using Gemini native image generation.
 
     Models:
-    - pro: newest Gemini Pro Image (Nano Banana Pro: high quality, up to 4K, thinking mode) - DEFAULT
-    - flash: newest Gemini Flash Image (Nano Banana 2: fast generation)
+    - pro: Nano Banana Pro (newest Gemini Pro Image) - DEFAULT
+    - flash: Nano Banana 2.1 (fast, panoramic formats, 14 references, search grounding)
+    - lite: Nano Banana 2 Lite (lowest latency and cost)
 
     Modes:
     - Text-to-image: prompt only
@@ -118,11 +146,18 @@ def generate_image(
         }
 
         image_config = {"aspect_ratio": aspect_ratio}
-        if model == "pro" and image_size in ["1K", "2K", "4K"]:
-            image_config["image_size"] = image_size
+        size = resolve_image_size(model, image_size)
+        if size:
+            image_config["image_size"] = size
         config_params["image_config"] = types.ImageConfig(**image_config)
+        if google_search:
+            config_params["tools"] = [types.Tool(google_search=types.GoogleSearch())]
+        if thinking_level and thinking_level != "auto":
+            config_params["thinking_config"] = types.ThinkingConfig(thinking_level=thinking_level)
 
         # Build contents: images first (if any), then prompt text
+        if input_images and len(input_images) > MAX_REFERENCE_IMAGES:
+            return f"Error: at most {MAX_REFERENCE_IMAGES} input images"
         if input_images:
             contents = []
             missing = [p for p in input_images if not os.path.exists(p)]
@@ -136,7 +171,7 @@ def generate_image(
             contents = prompt
             mode = "text-to-image"
 
-        log_progress(f"Generating {image_size} image [{mode}] with {model_id}...")
+        log_progress(f"Generating {size or 'default-size'} image [{mode}] with {model_id}...")
 
         response = client.models.generate_content(
             model=model_id,

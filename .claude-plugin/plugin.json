@@ -1,7 +1,7 @@
 {
   "name": "omni-ai-mcp",
-  "version": "4.7.0",
-  "description": "Multi-AI MCP bridge: Gemini + 400+ models via OpenRouter. 21 tools: text, code, image, video, TTS, transcription, RAG, Deep Research.",
+  "version": "4.8.0",
+  "description": "Multi-AI MCP bridge: Gemini + 400+ models via OpenRouter. 28 tools: text, code, image, video, music, TTS and voices, transcription, video analysis, embeddings, RAG, Deep Research, agent.",
   "author": {
     "name": "Marco Armellino",
     "url": "https://github.com/marmyx77"

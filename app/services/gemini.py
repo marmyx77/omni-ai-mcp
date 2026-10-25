@@ -39,27 +39,50 @@ class _LazyModelMap(Mapping):
 
 
 MODELS = _LazyModelMap({
-    "pro": "text_pro",            # Best for reasoning, coding, complex tasks
+    "pro": "text_pro",            # Flagship reasoning (Gemini 4 Argon since v4.8.0)
     "flash": "text_flash",        # Balanced speed/quality for standard tasks
     "fast": "text_flash",         # High-volume, simple tasks (same as flash)
     "flash-lite": "text_flash_lite",
+    "robotics": "robotics",       # Embodied/spatial reasoning (points, boxes, trajectories)
 })
 
 IMAGE_MODELS = _LazyModelMap({
-    "pro": "image",               # High quality, 4K, thinking mode
-    "flash": "image_flash",       # Fast generation
+    "pro": "image",               # Nano Banana Pro: highest quality, 4K, thinking
+    "flash": "image_flash",       # Nano Banana 2.1: fast, panoramic formats, 14 references
+    "lite": "image_lite",         # Nano Banana 2 Lite: lowest latency and cost
 })
 
 VIDEO_MODELS = _LazyModelMap({
-    "veo31": "video",             # Best quality, 8s, 720p/1080p, audio
-    "veo31_fast": "video_fast",   # Faster, optimized for speed
-    "veo31_lite": "video_lite",   # Cheapest, 720p
+    "omni": "video",              # Gemini Omni Flash: generate, edit, extend, interpolate
 })
 
 TTS_MODELS = _LazyModelMap({
-    "flash": "tts",               # Fast TTS
-    "pro": "tts_pro",             # Higher quality TTS
+    "flash": "tts",               # Gemini 3.8 Flash TTS: studio-grade, acting, dialects
+    "lite": "tts_lite",           # Gemini 3.8 Flash-Lite TTS: fast, cost-efficient
+    "pro": "tts",                 # kept for compatibility: the Flash TTS is now the flagship
 })
+
+MUSIC_MODELS = _LazyModelMap({
+    "full": "music",              # Lyria 3.5: full-length songs (a couple of minutes)
+    "clip": "music_clip",         # Lyria 3 Clip: 30-second clips and loops
+})
+
+
+def legacy_sampling(model_id: str, temperature: Optional[float]) -> Dict[str, Any]:
+    """
+    Sampling kwargs for GenerateContentConfig.
+
+    temperature/top_p/top_k are deprecated and ignored from Gemini 3.6 on, and
+    Google announces HTTP 400 for future generations: send temperature only to
+    the 2.x and Gemma models that still honour it.
+    """
+    if temperature is None:
+        return {}
+    lower = (model_id or "").lower()
+    if lower.startswith(("gemini-2.", "gemma-", "models/gemini-2.")):
+        return {"temperature": temperature}
+    return {}
+
 
 TTS_VOICES = {
     "Zephyr": "Bright",
@@ -160,9 +183,11 @@ def generate_with_fallback(
     except Exception as e:
         error_msg = str(e).lower()
         # Check for quota/rate limit errors and if we're using a Pro model
-        if ("quota" in error_msg or "rate" in error_msg or "resource" in error_msg) and "pro" in model_id.lower():
-            log_progress(f"{operation}: Pro model quota exceeded, falling back to Flash...")
-            flash_model = MODELS["flash"]
+        flash_model = MODELS["flash"]
+        spending_cap = "spending cap" in error_msg
+        if ("quota" in error_msg or "rate" in error_msg or "resource" in error_msg) \
+                and model_id != flash_model and not spending_cap:
+            log_progress(f"{operation}: {model_id} quota exceeded, falling back to {flash_model}...")
             try:
                 if config:
                     response = client.models.generate_content(model=flash_model, contents=contents, config=config)
@@ -171,5 +196,5 @@ def generate_with_fallback(
                 log_progress(f"{operation}: Completed with Flash fallback")
                 return response
             except Exception as fallback_error:
-                raise Exception(f"Both Pro and Flash failed. Pro error: {str(e)}. Flash error: {str(fallback_error)}")
+                raise Exception(f"Both {model_id} and {flash_model} failed. First error: {str(e)}. Fallback error: {str(fallback_error)}")
         raise

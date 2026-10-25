@@ -17,7 +17,7 @@ class Config:
     """
 
     # Version
-    version: str = "4.7.0"
+    version: str = "4.8.0"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
@@ -28,9 +28,9 @@ class Config:
     model_autodetect: bool = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_AUTODETECT", "true").lower() == "true"
     )
-    # Text Generation Models
+    # Text Generation Models ("pro" = flagship reasoning model: Gemini 4 Argon since v4.8.0)
     model_pro: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_PRO", "gemini-3.1-pro-preview")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_PRO", "gemini-4-argon")
     )
     model_flash: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_FLASH", "gemini-3.8-flash")
@@ -43,32 +43,55 @@ class Config:
         default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_PRO", "gemini-3-pro-image")
     )
     model_image_flash: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_FLASH", "gemini-3.1-flash-image")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_FLASH", "gemini-nano-banana-2.1")
     )
-    # Video Models (Veo 3.0 / 2.0 were removed upstream — no longer configurable)
-    model_veo31: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31", "veo-3.1-generate-preview")
+    model_image_lite: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_IMAGE_LITE", "gemini-3.1-flash-lite-image")
     )
-    model_veo31_fast: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31_FAST", "veo-3.1-fast-generate-preview")
-    )
-    model_veo31_lite: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_VEO31_LITE", "veo-3.1-lite-generate-preview")
+    # Video (Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22: Gemini Omni Flash replaces it)
+    model_video: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_VIDEO", "gemini-omni-1.1-flash")
     )
     # TTS Models
     model_tts_flash: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_FLASH", "gemini-3.1-flash-tts-preview")
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_FLASH", "gemini-3.8-flash-tts")
     )
-    model_tts_pro: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_PRO", "gemini-2.5-pro-preview-tts")
+    model_tts_lite: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_TTS_LITE", "gemini-3.8-flash-lite-tts")
     )
     # Speech-to-text
     model_transcribe: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_TRANSCRIBE", "gemini-3.5-transcribe")
     )
-    # Research Agent
+    # Music (Lyria)
+    model_music: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_MUSIC", "lyria-3.5")
+    )
+    model_music_clip: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_MUSIC_CLIP", "lyria-3-clip-preview")
+    )
+    # Research Agents
     model_deep_research: str = field(
         default_factory=lambda: os.environ.get("GEMINI_MODEL_DEEP_RESEARCH", "deep-research-preview-04-2026")
+    )
+    model_deep_research_max: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_DEEP_RESEARCH_MAX", "deep-research-max-preview-04-2026")
+    )
+    # Managed coding/computing agent (Antigravity)
+    model_agent: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_AGENT", "antigravity-preview-09-2026")
+    )
+    # Embeddings (multimodal)
+    model_embedding: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_EMBEDDING", "gemini-embedding-2")
+    )
+    # Embodied / spatial reasoning
+    model_robotics: str = field(
+        default_factory=lambda: os.environ.get("GEMINI_MODEL_ROBOTICS", "gemini-robotics-er-2-preview")
+    )
+    # Output budget: thinking and answer share it on Gemini 3+ (Google recommends >= 32K; default 64K)
+    max_output_tokens: int = field(
+        default_factory=lambda: int(os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "65536"))
     )
 
     # OpenRouter (optional multi-provider support)

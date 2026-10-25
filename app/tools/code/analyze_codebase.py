@@ -11,6 +11,7 @@ from typing import List, Optional
 from ...tools.registry import tool
 from ...services import types, MODELS, client, conversation_memory, CONVERSATION_MAX_TURNS
 from ...utils.tokens import estimate_tokens
+from ...core import config
 
 
 ANALYSIS_INSTRUCTIONS = {
@@ -230,8 +231,7 @@ Structure your response clearly with sections and specific file references where
             model=model_id,
             contents=full_prompt,
             config=types.GenerateContentConfig(
-                temperature=0.3,  # Lower temperature for analysis
-                max_output_tokens=8192
+                max_output_tokens=config.max_output_tokens  # thinking + answer share it on Gemini 3+
             )
         )
 
@@ -271,8 +271,7 @@ Structure your response clearly with sections and specific file references where
                     model=MODELS["flash"],
                     contents=full_prompt,
                     config=types.GenerateContentConfig(
-                        temperature=0.3,
-                        max_output_tokens=8192
+                        max_output_tokens=config.max_output_tokens
                     )
                 )
                 result_text = response.text

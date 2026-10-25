@@ -14,7 +14,9 @@ from ...services import (
     generate_with_fallback,
     conversation_memory,
     CONVERSATION_MAX_TURNS,
+    legacy_sampling,
 )
+from ...core import config
 from ...utils.file_refs import expand_file_references
 from ...utils.tokens import check_prompt_size
 from ...schemas.inputs import AskGeminiInput
@@ -201,9 +203,11 @@ def ask_gemini(
     model_id = MODELS.get(model, MODELS["pro"])
 
     # Build config
+    # Gemini 3+ ignores temperature (deprecated) and shares max_output_tokens
+    # between thinking and answer: send temperature only to 2.x, budget 64K.
     config_params = {
-        "temperature": temperature,
-        "max_output_tokens": 8192
+        **legacy_sampling(model_id, temperature),
+        "max_output_tokens": config.max_output_tokens,
     }
 
     thinking_params = build_thinking_config(model_id, thinking_level, include_thoughts)

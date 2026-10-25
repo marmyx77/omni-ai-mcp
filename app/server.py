@@ -66,6 +66,11 @@ from .tools.media.generate_image import generate_image
 from .tools.media.generate_video import generate_video
 from .tools.media.text_to_speech import text_to_speech
 from .tools.media.transcribe_audio import transcribe_audio
+from .tools.media.analyze_video import analyze_video
+from .tools.media.generate_music import generate_music
+from .tools.media.voices import list_voices, design_voice, replicate_voice
+from .tools.text.embed import embed
+from .tools.web.agent_task import agent_task
 from .tools.rag.file_search import file_search
 from .tools.rag.file_store import create_file_store, upload_file, list_file_stores
 from .tools.text.ask_gemini import ask_gemini
@@ -113,31 +118,38 @@ def gemini_analyze_codebase(
 
 
 # =============================================================================
-# TOOL: Image Analysis (Vision)
+# TOOL: Image Analysis (Vision + spatial reasoning)
 # =============================================================================
 
 @mcp.tool()
 def gemini_analyze_image(
-    image_path: str,
+    image_path: Optional[str] = None,
     prompt: str = "Describe this image in detail",
-    model: str = "flash"
+    model: str = "flash",
+    image_paths: Optional[List[str]] = None,
+    media_resolution: str = "medium"
 ) -> str:
     """
-    Analyze images using Gemini vision capabilities.
-    Describe, extract text (OCR), identify objects, or answer questions about images.
+    Analyze one or more images: describe, OCR, Q&A, compare screenshots, review UI, read diagrams.
+    model='robotics' (Gemini Robotics ER) does spatial reasoning: points, bounding boxes,
+    trajectories as JSON with [y, x] normalized to 0-1000.
 
     Args:
-        image_path: Path to image file (PNG, JPG, JPEG, GIF, WEBP)
-        prompt: What to analyze - "describe", "extract text", or a specific question
-        model: flash (default, reliable) or pro (experimental)
+        image_path: Path to one image (PNG, JPG, JPEG, GIF, WEBP)
+        prompt: What to analyze
+        model: flash (default), pro (newest flagship), flash-lite (cheapest), robotics (spatial JSON)
+        image_paths: Several images to compare or analyze as a sequence (overrides image_path)
+        media_resolution: low, medium (default) or high detail
 
     Returns:
         Image analysis response
     """
     return analyze_image(
         image_path=image_path,
+        image_paths=image_paths,
         prompt=prompt,
-        model=model
+        model=model,
+        media_resolution=media_resolution
     )
 
 
@@ -172,27 +184,18 @@ def gemini_web_search(
 def gemini_deep_research(
     query: str = "",
     max_wait_minutes: int = 30,
-    continuation_id: Optional[str] = None
+    continuation_id: Optional[str] = None,
+    depth: str = "standard"
 ) -> str:
     """
     Execute comprehensive research using Google's Deep Research Agent.
-    Autonomously conducts multi-step web searches and synthesizes findings.
-
-    The agent:
-    - Plans and executes research strategy
-    - Conducts multiple targeted web searches
-    - Synthesizes findings into comprehensive reports
-    - Provides citations and sources
-
-    Use for: Market research, technical deep dives, literature reviews,
-    trend analysis, competitive analysis, or any topic requiring thorough investigation.
-
-    Note: Research typically takes 5-30 minutes depending on complexity.
+    Autonomously plans, runs many web searches and writes a cited report (5-60 minutes).
 
     Args:
-        query: Research topic or question. Be specific for best results. Leave empty with continuation_id to retrieve a previous research (e.g. after a timeout).
+        query: Research topic or question. Leave empty with continuation_id to retrieve a previous research (e.g. after a timeout).
         max_wait_minutes: Maximum wait time (5-60 minutes, default: 30). On timeout the research keeps running: call again with continuation_id and no query.
         continuation_id: Previous interaction ID. Empty query = retrieve/resume it; with a query = follow-up research chained to it
+        depth: standard (default, fast and efficient) or max (Deep Research Max: maximum comprehensiveness, slower and pricier)
 
     Returns:
         Comprehensive research report with citations
@@ -200,88 +203,117 @@ def gemini_deep_research(
     return deep_research(
         query=query,
         max_wait_minutes=max_wait_minutes,
-        continuation_id=continuation_id
+        continuation_id=continuation_id,
+        depth=depth
     )
 
 
 # =============================================================================
-# TOOL: Image Generation (Imagen)
+# TOOL: Image Generation (Nano Banana family)
 # =============================================================================
 
 @mcp.tool()
 def gemini_generate_image(
     prompt: str,
     output_path: Optional[str] = None,
-    aspect_ratio: str = "1:1",
     model: str = "pro",
-    image_size: str = "2K"
+    aspect_ratio: str = "1:1",
+    image_size: str = "auto",
+    input_images: Optional[List[str]] = None,
+    google_search: bool = False,
+    thinking_level: str = "auto"
 ) -> str:
     """
-    Generate images using Gemini/Imagen native image generation.
-    Use descriptive prompts (not keywords) for best results.
+    Generate or edit images with Google's Nano Banana models: infographics with accurate data,
+    readable text, technical diagrams, maps, illustrations; edits and multi-image fusion.
 
     Args:
-        prompt: Detailed image description (e.g., "A photorealistic portrait of...")
-        output_path: Path to save image (optional, returns base64 preview if not provided)
-        aspect_ratio: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
-        model: pro (default, 4K quality) or flash (faster, 1K)
-        image_size: Resolution for pro model - 1K, 2K, or 4K
+        prompt: Description, or the change to apply to input_images
+        output_path: Where to save the image
+        model: pro (default, Nano Banana Pro), flash (Nano Banana 2.1: fast, panoramic, 14 references), lite (cheapest)
+        aspect_ratio: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9; panoramic 1:4, 4:1, 1:8, 8:1 on flash
+        image_size: auto (2K on pro, model default elsewhere), 512, 1K, 2K or 4K
+        input_images: Up to 14 images to edit, combine or use as references
+        google_search: Ground the image in Google Search results (facts, current events)
+        thinking_level: auto, minimal, medium or high
 
     Returns:
-        Path to generated image or generation status
+        Path to the saved image (or a base64 preview)
     """
     return generate_image(
         prompt=prompt,
-        output_path=output_path,
-        aspect_ratio=aspect_ratio,
+        input_images=input_images,
         model=model,
-        image_size=image_size
+        aspect_ratio=aspect_ratio,
+        image_size=image_size,
+        output_path=output_path,
+        google_search=google_search,
+        thinking_level=thinking_level
     )
 
 
 # =============================================================================
-# TOOL: Video Generation (Veo - unique)
+# TOOL: Video Generation & Editing (Gemini Omni Flash)
 # =============================================================================
 
 @mcp.tool()
 def gemini_generate_video(
     prompt: str,
     output_path: Optional[str] = None,
-    duration: int = 8,
-    resolution: str = "720p",
+    image_paths: Optional[List[str]] = None,
+    video_path: Optional[str] = None,
+    task: str = "auto",
     aspect_ratio: str = "16:9",
-    model: str = "veo31",
-    negative_prompt: Optional[str] = None
+    resolution: str = "720p",
+    duration: Optional[int] = None,
+    negative_prompt: Optional[str] = None,
+    continuation_id: Optional[str] = None,
+    retrieve_id: Optional[str] = None,
+    max_wait_minutes: int = 10,
+    model: str = "omni"
 ) -> str:
     """
-    Generate videos using Google Veo 3.1 with native audio.
-    Creates 4-8 second videos with realistic motion, dialogue, and sound effects.
+    Generate or edit a 3-10 s video with native audio using Gemini Omni Flash
+    (Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22).
 
     Args:
-        prompt: Video description including subject, action, style, camera motion, sounds
-        output_path: Path to save video (.mp4), saves to /tmp if not provided
-        duration: 4, 6, or 8 seconds (8s required for 1080p)
-        resolution: 720p (default) or 1080p (Veo 3.1 only, requires 8s)
-        aspect_ratio: 16:9 (landscape) or 9:16 (portrait)
-        model: veo31 (best, default), veo31_fast, veo31_lite (720p only)
-        negative_prompt: What NOT to include (avoid "no" or "don't")
+        prompt: What to generate or change (subject, action, camera, light, audio; timecodes like [0-3s] work).
+                Bind images with <FIRST_FRAME>, <LAST_FRAME>, <IMAGE_REF_0>...; for edits add "Keep everything else the same".
+        output_path: Where to save the .mp4
+        image_paths: Start frame, first+last frames (interpolation) or subject/style references (up to 14)
+        video_path: Clip <= 10 s to edit or extend (not available in the EEA, CH, UK)
+        task: auto (default), text_to_video, image_to_video, reference_to_video, edit, extend
+        aspect_ratio: 16:9 (default) or 9:16
+        resolution: 360p, 720p (default), 1080p or 4k (upscaled)
+        duration: Optional length in seconds (3-10)
+        negative_prompt: Things to avoid (appended to the prompt)
+        continuation_id: Edit or extend a video generated earlier (its interaction id)
+        retrieve_id: Save the video of a generation that timed out
+        max_wait_minutes: How long to wait (default 10)
+        model: omni (Veo names are accepted and mapped to Omni)
 
     Returns:
-        Path to generated video
+        Path to the video and a continuation_id for further edits
     """
     return generate_video(
         prompt=prompt,
-        output_path=output_path,
-        duration=duration,
-        resolution=resolution,
+        image_paths=image_paths,
+        video_path=video_path,
+        task=task,
         aspect_ratio=aspect_ratio,
-        model=model,
-        negative_prompt=negative_prompt
+        resolution=resolution,
+        duration=duration,
+        negative_prompt=negative_prompt,
+        continuation_id=continuation_id,
+        retrieve_id=retrieve_id,
+        output_path=output_path,
+        max_wait_minutes=max_wait_minutes,
+        model=model
     )
 
 
 # =============================================================================
-# TOOL: Text-to-Speech (Multi-speaker - unique)
+# TOOL: Text-to-Speech (Gemini 3.8 TTS)
 # =============================================================================
 
 @mcp.tool()
@@ -290,28 +322,33 @@ def gemini_text_to_speech(
     voice: str = "Kore",
     output_path: Optional[str] = None,
     speakers: Optional[List[dict]] = None,
-    model: str = "flash"
+    model: str = "flash",
+    style: Optional[str] = None,
+    language: Optional[str] = None
 ) -> str:
     """
-    Convert text to speech with 30 voice options.
-    Supports single and multi-speaker (up to 2) audio.
+    Convert text to speech with Gemini 3.8 TTS: one voice or a two-speaker dialogue.
 
     Args:
-        text: Text to speak. For multi-speaker, use "Speaker1: text\\nSpeaker2: text"
-        voice: Single speaker voice - Kore (Firm), Puck (Upbeat), Charon (Informative), etc.
-        output_path: Path to save audio (.wav), saves to /tmp if not provided
-        speakers: Multi-speaker config [{"name": "Speaker1", "voice": "Kore"}]
-        model: flash (default, fast) or pro (higher quality)
+        text: Exact text. For two speakers write one turn per line: "Joe: ...\nJane: ..."
+        voice: Featured voice (Kore, Puck, Charon, ...), a Voice Library ID (gemini_list_voices), or a voice_.../voicekey_... ID
+        output_path: Where to save the .wav
+        speakers: [{"name": "Joe", "voice": "Puck", "style": "cheerful"}, {"name": "Jane", "voice": "Kore"}]
+        model: flash (default, best fidelity), lite (fastest/cheapest), pro (alias of flash)
+        style: Delivery direction, e.g. "slow, warm audiobook narration"
+        language: Optional BCP-47 language, e.g. "it-IT"
 
     Returns:
-        Path to generated audio file
+        Path to the generated WAV
     """
     return text_to_speech(
         text=text,
         voice=voice,
         output_path=output_path,
         speakers=speakers,
-        model=model
+        model=model,
+        style=style,
+        language=language
     )
 
 
@@ -355,6 +392,246 @@ def gemini_transcribe_audio(
         mode=mode,
         output_path=output_path
     )
+
+
+# =============================================================================
+# TOOL: Video Understanding (static + agentic)
+# =============================================================================
+
+@mcp.tool()
+def gemini_analyze_video(
+    prompt: str,
+    video_path: Optional[str] = None,
+    youtube_url: Optional[str] = None,
+    processing: str = "static",
+    model: str = "flash",
+    resolution: Optional[str] = None,
+    max_wait_minutes: int = 20
+) -> str:
+    """
+    Understand a video (local file or public YouTube URL): summary, Q&A, key moments with MM:SS
+    timestamps, what is said and shown.
+
+    Args:
+        prompt: What to do with the video
+        video_path: Local video file
+        youtube_url: Public YouTube URL (alternative to video_path)
+        processing: static (default, 1 FPS, short clips) or agentic (navigates long videos on demand, up to 88% fewer tokens)
+        model: flash (default), pro, flash-lite, robotics (spatial/temporal JSON)
+        resolution: Optional low/medium/high frame detail
+        max_wait_minutes: How long to wait (default 20)
+
+    Returns:
+        The analysis
+    """
+    return analyze_video(
+        prompt=prompt,
+        video_path=video_path,
+        youtube_url=youtube_url,
+        processing=processing,
+        model=model,
+        resolution=resolution,
+        max_wait_minutes=max_wait_minutes
+    )
+
+
+# =============================================================================
+# TOOL: Music Generation (Lyria)
+# =============================================================================
+
+@mcp.tool()
+def gemini_generate_music(
+    prompt: str,
+    output_path: Optional[str] = None,
+    model: str = "full",
+    image_paths: Optional[List[str]] = None,
+    retrieve_id: Optional[str] = None,
+    max_wait_minutes: int = 10
+) -> str:
+    """
+    Generate music with Google Lyria: full songs with vocals and lyrics, or 30-second clips.
+
+    Args:
+        prompt: Genre, mood, instruments, tempo, vocals or instrumental, lyrics language, structure and length
+        output_path: Where to save the .mp3
+        model: full (default, newest Lyria: full-length songs) or clip (30 s)
+        image_paths: Optional images to inspire the music
+        retrieve_id: Save the song of a generation that timed out
+        max_wait_minutes: How long to wait (default 10)
+
+    Returns:
+        Path to the MP3 and the generated lyrics
+    """
+    return generate_music(
+        prompt=prompt,
+        image_paths=image_paths,
+        model=model,
+        output_path=output_path,
+        max_wait_minutes=max_wait_minutes,
+        retrieve_id=retrieve_id
+    )
+
+
+# =============================================================================
+# TOOL: Voice Library, Voice Design, Voice Replication
+# =============================================================================
+
+@mcp.tool()
+def gemini_list_voices(
+    language_codes: Optional[List[str]] = None,
+    gender: Optional[List[str]] = None,
+    pitch: Optional[List[str]] = None,
+    accent: Optional[List[str]] = None,
+    persona: Optional[List[str]] = None,
+    contexts: Optional[List[str]] = None,
+    voice_type: Optional[List[str]] = None,
+    search: Optional[str] = None,
+    page_size: int = 50,
+    page_token: Optional[str] = None
+) -> str:
+    """
+    Browse the Gemini Voice Library (hundreds of TTS voices) and your custom voices.
+
+    Args:
+        language_codes: BCP-47 codes, e.g. ["it-IT"]
+        gender: female, male, neutral
+        pitch: low, medium, high
+        accent: e.g. ["British"]
+        persona: e.g. ["Narrator"]
+        contexts: e.g. ["Audiobook", "News"]
+        voice_type: prebuilt, prompted (designed), replicated
+        search: Free text on name and description
+        page_size: Results per page (default 50, max 1000)
+        page_token: Next page token
+
+    Returns:
+        Voice IDs to use in gemini_text_to_speech
+    """
+    return list_voices(
+        language_codes=language_codes, gender=gender, pitch=pitch, accent=accent, persona=persona,
+        contexts=contexts, voice_type=voice_type, search=search, page_size=page_size, page_token=page_token
+    )
+
+
+@mcp.tool()
+def gemini_design_voice(
+    description: str,
+    display_name: str = "Custom voice",
+    gender: Optional[str] = None,
+    language_code: Optional[str] = None,
+    model: str = "flash",
+    preview_path: Optional[str] = None
+) -> str:
+    """
+    Create a persistent custom TTS voice from a plain-language description.
+
+    Args:
+        description: Age, timbre, accent, attitude, e.g. "A warm astronomer in his 60s with a gentle British accent"
+        display_name: Name of the voice
+        gender: female, male or neutral
+        language_code: BCP-47, e.g. "it-IT"
+        model: flash (default) or lite
+        preview_path: Where to save the WAV preview
+
+    Returns:
+        The voice_... ID and the preview path
+    """
+    return design_voice(description=description, display_name=display_name, gender=gender,
+                        language_code=language_code, model=model, preview_path=preview_path)
+
+
+@mcp.tool()
+def gemini_replicate_voice(
+    source_audio_path: str,
+    consent_audio_path: str,
+    display_name: str = "Replicated voice",
+    store: bool = True,
+    model: str = "flash"
+) -> str:
+    """
+    Replicate a consenting adult speaker's voice for TTS. Needs a 10-30 s reference WAV and a consent WAV
+    of the SAME speaker reading Google's consent statement ("I am the owner of this voice and I consent to
+    Google using this voice to create a synthetic voice model."). Google verifies consent.
+
+    Args:
+        source_audio_path: 10-30 s WAV of clean natural speech
+        consent_audio_path: WAV of the same speaker reading the consent statement
+        display_name: Name of the voice
+        store: true = persistent voice_... ID; false = stateless voicekey_... you keep
+        model: flash (default) or lite
+
+    Returns:
+        The voice ID or key
+    """
+    return replicate_voice(source_audio_path=source_audio_path, consent_audio_path=consent_audio_path,
+                           display_name=display_name, store=store, model=model)
+
+
+# =============================================================================
+# TOOL: Embeddings (Gemini Embedding 2, multimodal)
+# =============================================================================
+
+@mcp.tool()
+def gemini_embed(
+    texts: Optional[List[str]] = None,
+    file_paths: Optional[List[str]] = None,
+    task: str = "none",
+    title: Optional[str] = None,
+    aggregate: bool = False,
+    output_dimensionality: Optional[int] = None,
+    output_path: Optional[str] = None
+) -> str:
+    """
+    Embed text, images, audio, video and PDF in one vector space (semantic search, clustering, cross-modal retrieval).
+
+    Args:
+        texts: Texts to embed
+        file_paths: Images (PNG/JPEG <= 6), audio (MP3/WAV <= 180 s), video, PDF
+        task: none, search_query, search_document, question_answering, fact_checking, code_retrieval, classification, clustering, similarity
+        title: Title for search_document texts
+        aggregate: One vector for all inputs instead of one per input
+        output_dimensionality: 128-3072 (768 or 1536 recommended)
+        output_path: Save vectors as JSON
+
+    Returns:
+        JSON with the vectors, or the path of the saved file
+    """
+    return embed(texts=texts, file_paths=file_paths, task=task, title=title, aggregate=aggregate,
+                 output_dimensionality=output_dimensionality, output_path=output_path)
+
+
+# =============================================================================
+# TOOL: Antigravity managed agent
+# =============================================================================
+
+@mcp.tool()
+def gemini_agent_task(
+    task: str = "",
+    continuation_id: Optional[str] = None,
+    file_paths: Optional[List[str]] = None,
+    tools: Optional[List[str]] = None,
+    model: str = "flash",
+    output_dir: Optional[str] = None,
+    max_wait_minutes: int = 30
+) -> str:
+    """
+    Delegate a multi-step task to Google's Antigravity agent, which works in its own Google-hosted Linux
+    sandbox: runs Bash/Python/Node, installs packages, reads/writes files, searches and reads the web.
+
+    Args:
+        task: What to accomplish. Empty + continuation_id = retrieve a run that timed out
+        continuation_id: Continue in the same sandbox (files persist) or retrieve a run
+        file_paths: Local files to hand to the agent
+        tools: Restrict to code_execution, google_search, url_context
+        model: flash (default) or pro (newest flagship)
+        output_dir: Save media/documents the agent returns here
+        max_wait_minutes: How long to wait (default 30)
+
+    Returns:
+        The agent's answer and a continuation_id
+    """
+    return agent_task(task=task, continuation_id=continuation_id, file_paths=file_paths, tools=tools,
+                      model=model, output_dir=output_dir, max_wait_minutes=max_wait_minutes)
 
 
 # =============================================================================
@@ -558,7 +835,7 @@ def ask_model_tool(
 
     Args:
         prompt: The question or prompt to send
-        model: Model ID (e.g. 'gemini-3.1-pro-preview', 'openai/gpt-4o', 'meta-llama/llama-3.3-70b')
+        model: Model ID or alias (e.g. 'pro' = newest Gemini flagship, 'gemini-4-argon', 'gemma-4-31b-it', 'openai/gpt-4o')
         provider: 'auto' (default), 'gemini', or 'openrouter'
         system_prompt: Optional system message / persona
         temperature: Sampling temperature 0.0-1.0 (default: 0.7)

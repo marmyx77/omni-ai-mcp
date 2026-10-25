@@ -22,21 +22,29 @@ from app.services.model_registry import (
     _FAILURE_RETRY_TTL,
 )
 
-# A realistic slice of what the API returned on 2026-09-19.
+# What the API listed on 2026-10-25 (Veo is no longer listed, though still served by name).
 LIVE_SNAPSHOT = [
-    "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro",
-    "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts",
+    "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-2.5-flash-image",
+    "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts", "gemini-2.5-computer-use-preview-10-2025",
     "gemini-3-flash-preview", "gemini-3-pro-image", "gemini-3-pro-image-preview",
-    "gemini-3.1-flash-image", "gemini-3.1-flash-lite", "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-flash-image", "gemini-3.1-flash-image-preview", "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-image", "gemini-3.1-flash-lite-preview",
     "gemini-3.1-flash-live-preview", "gemini-3.1-flash-tts-preview",
     "gemini-3.1-pro-preview", "gemini-3.1-pro-preview-customtools",
-    "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.5-transcribe",
+    "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.5-transcribe", "gemini-3.5-transcribe-live",
+    "gemini-3.5-live-translate-preview",
     "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.8-live",
-    "gemini-flash-latest", "gemini-pro-latest", "gemini-embedding-2",
-    "veo-3.1-fast-generate-preview", "veo-3.1-generate-preview",
-    "veo-3.1-lite-generate-preview",
+    "gemini-3.8-live-extended-thinking", "gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts",
+    "gemini-4-argon", "gemini-nano-banana-2.1", "nano-banana-pro-preview",
+    "gemini-omni-1.1-flash", "gemini-omni-flash-preview",
+    "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest",
+    "gemini-embedding-001", "gemini-embedding-2", "gemini-embedding-2-preview",
+    "gemini-robotics-er-2-preview", "gemini-robotics-er-2-streaming-preview",
+    "gemma-4-26b-a4b-it", "gemma-4-31b-it",
+    "lyria-3-clip-preview", "lyria-3-pro-preview", "lyria-3.5", "lyria-realtime-exp",
     "deep-research-preview-04-2026", "deep-research-max-preview-04-2026",
     "deep-research-pro-preview-12-2025",
+    "antigravity-preview-05-2026", "antigravity-preview-09-2026", "antigravity-preview-latest",
 ]
 
 
@@ -58,8 +66,9 @@ def _no_env_overrides(monkeypatch):
 
 class TestCategorySpecs:
     def test_all_required_categories_present(self):
-        required = {"text_pro", "text_flash", "text_flash_lite", "image", "image_flash",
-                    "video", "video_fast", "video_lite", "tts", "tts_pro", "deep_research"}
+        required = {"text_pro", "text_flash", "text_flash_lite", "image", "image_flash", "image_lite",
+                    "video", "tts", "tts_lite", "transcribe", "music", "music_clip", "deep_research",
+                    "deep_research_max", "agent", "embedding", "robotics"}
         assert required.issubset(set(CATEGORY_SPECS.keys()))
 
     def test_each_category_has_at_least_one_fallback(self):
@@ -80,8 +89,8 @@ class TestCategorySpecs:
 class TestVersionKey:
     def test_parses_major_minor(self):
         spec = CATEGORY_SPECS["text_flash"]
-        assert spec.version_key("gemini-3.8-flash") == (3, 8, 1)
-        assert spec.version_key("gemini-3-flash-preview") == (3, 0, 0)
+        assert spec.version_key("gemini-3.8-flash") == (0, 3, 8, 1)
+        assert spec.version_key("gemini-3-flash-preview") == (0, 3, 0, 0)
 
     def test_stable_outranks_preview_at_same_version(self):
         spec = CATEGORY_SPECS["image"]
@@ -101,11 +110,11 @@ class TestVersionKey:
 
     def test_flash_lite_not_matched_by_flash(self):
         assert CATEGORY_SPECS["text_flash"].version_key("gemini-3.5-flash-lite") is None
-        assert CATEGORY_SPECS["text_flash_lite"].version_key("gemini-3.5-flash-lite") == (3, 5, 1)
+        assert CATEGORY_SPECS["text_flash_lite"].version_key("gemini-3.5-flash-lite") == (0, 3, 5, 1)
 
     def test_deep_research_ranks_by_year_then_month(self):
         spec = CATEGORY_SPECS["deep_research"]
-        assert spec.version_key("deep-research-preview-04-2026") == (2026, 4, 0)
+        assert spec.version_key("deep-research-preview-04-2026") == (0, 2026, 4, 0)
         assert spec.version_key("deep-research-max-preview-04-2026") is None
         assert spec.version_key("deep-research-pro-preview-12-2025") is None
 
@@ -120,23 +129,23 @@ class TestAutoDetect:
         assert reg.resolve("text_flash_lite") == "gemini-3.5-flash-lite"
 
     def test_pro_stays_on_newest_available_even_if_preview(self):
-        reg = _make_registry(LIVE_SNAPSHOT)
+        reg = _make_registry([m for m in LIVE_SNAPSHOT if m != "gemini-4-argon"])
         assert reg.resolve("text_pro") == "gemini-3.1-pro-preview"
 
     def test_stable_image_beats_its_preview_twin(self):
         reg = _make_registry(LIVE_SNAPSHOT)
         assert reg.resolve("image") == "gemini-3-pro-image"
 
-    def test_video_variants(self):
+    def test_video_is_omni_flash_and_ignores_the_shut_down_preview(self):
         reg = _make_registry(LIVE_SNAPSHOT)
-        assert reg.resolve("video") == "veo-3.1-generate-preview"
-        assert reg.resolve("video_fast") == "veo-3.1-fast-generate-preview"
-        assert reg.resolve("video_lite") == "veo-3.1-lite-generate-preview"
+        assert reg.resolve("video") == "gemini-omni-1.1-flash"
+        assert CATEGORY_SPECS["video"].version_key("gemini-omni-flash-preview") is None
 
     def test_tts_variants(self):
         reg = _make_registry(LIVE_SNAPSHOT)
-        assert reg.resolve("tts") == "gemini-3.1-flash-tts-preview"
-        assert reg.resolve("tts_pro") == "gemini-2.5-pro-preview-tts"
+        assert reg.resolve("tts") == "gemini-3.8-flash-tts"
+        assert reg.resolve("tts_lite") == "gemini-3.8-flash-lite-tts"
+        assert CATEGORY_SPECS["tts"].version_key("gemini-3.8-flash-lite-tts") is None
 
     def test_future_model_is_picked_up_without_code_change(self):
         """The whole point: gemini-4.0-flash appears → it wins, no release needed."""
@@ -204,7 +213,7 @@ class TestFallbacks:
         reg = _make_registry(LIVE_SNAPSHOT)
         with pytest.warns(RuntimeWarning, match="Unknown category"):
             result = reg.resolve("nonexistent_category")
-        assert result == "gemini-2.5-flash"
+        assert result == "gemini-3.8-flash"
 
 
 class TestCache:
@@ -272,3 +281,82 @@ class TestListAvailableAndDeprecated:
     def test_empty_when_discovery_failed(self):
         reg = _make_registry([])
         assert reg.check_deprecated() == []
+
+
+class TestOctober2026Families:
+    """Naming schemes that appeared Sep-Oct 2026 (Gemini 4 codenames, Nano Banana 2.1, Omni, Lyria...)."""
+
+    def test_pro_is_the_newest_flagship_even_with_a_codename(self):
+        reg = _make_registry(LIVE_SNAPSHOT)
+        res = reg.explain("text_pro")
+        assert res.model == "gemini-4-argon"
+        assert res.candidates[:2] == ["gemini-4-argon", "gemini-3.1-pro-preview"]
+
+    @pytest.mark.parametrize("model_id", [
+        "gemini-4-flash", "gemini-3.8-live", "gemini-3.5-transcribe", "gemini-3.1-pro-preview-customtools",
+        "gemini-omni-1.1-flash", "gemini-nano-banana-2.1", "gemini-robotics-er-2-preview",
+        "gemini-embedding-2", "gemini-2.5-computer-use-preview-10-2025", "gemini-pro-latest",
+    ])
+    def test_flagship_pattern_rejects_non_flagship_families(self, model_id):
+        assert CATEGORY_SPECS["text_pro"].version_key(model_id) is None
+
+    def test_a_future_gemini_4_flash_goes_to_flash_not_pro(self):
+        reg = _make_registry(LIVE_SNAPSHOT + ["gemini-4-flash"])
+        assert reg.resolve("text_flash") == "gemini-4-flash"
+        assert reg.resolve("text_pro") == "gemini-4-argon"
+
+    def test_nano_banana_naming_outranks_the_legacy_flash_image_scheme(self):
+        """2.1 < 3.1 numerically, but the new scheme is the newer generation."""
+        reg = _make_registry(LIVE_SNAPSHOT)
+        assert reg.resolve("image_flash") == "gemini-nano-banana-2.1"
+        assert reg.resolve("image_lite") == "gemini-3.1-flash-lite-image"
+        assert reg.resolve("image") == "gemini-3-pro-image"
+
+    def test_music_agents_embedding_robotics(self):
+        reg = _make_registry(LIVE_SNAPSHOT)
+        assert reg.resolve("music") == "lyria-3.5"
+        assert reg.resolve("music_clip") == "lyria-3-clip-preview"
+        assert reg.resolve("deep_research_max") == "deep-research-max-preview-04-2026"
+        assert reg.resolve("agent") == "antigravity-preview-09-2026"
+        assert reg.resolve("embedding") == "gemini-embedding-2"
+        assert reg.resolve("robotics") == "gemini-robotics-er-2-preview"
+
+    def test_every_category_resolves_automatically_on_the_live_snapshot(self):
+        reg = _make_registry(LIVE_SNAPSHOT)
+        sources = {cat: reg.explain(cat).source for cat in CATEGORY_SPECS}
+        assert set(sources.values()) == {"auto"}, sources
+
+
+class TestProbing:
+    """The API may stop LISTING a family while still serving it (Veo, Oct 2026)."""
+
+    def test_unlisted_fallback_is_verified_by_name(self, monkeypatch):
+        monkeypatch.setattr(app_config, "model_autodetect", False)
+        reg = _make_registry(["gemini-3.8-flash"])  # listed, but nothing for "music"
+        probed = []
+        reg._probe = lambda mid: probed.append(mid) or mid == "lyria-3-pro-preview"
+        res = reg.explain("music")
+        assert res.model == "lyria-3-pro-preview" and res.source == "probed"
+        assert probed == ["lyria-3.5", "lyria-3-pro-preview"]
+
+    def test_config_default_only_when_nothing_answers(self, monkeypatch):
+        reg = _make_registry(["gemini-3.8-flash"])
+        reg._probe = lambda mid: False
+        with pytest.warns(RuntimeWarning, match="No available model found"):
+            res = reg.explain("video")
+        assert res.source == "config"
+
+    def test_probe_results_are_cached_per_refresh(self, monkeypatch):
+        import app.services.gemini as gemini_mod
+        calls = []
+
+        class Models:
+            def get(self, model):
+                calls.append(model)
+                return object()
+
+        monkeypatch.setattr(gemini_mod, "_available", True)
+        monkeypatch.setattr(gemini_mod, "client", type("C", (), {"models": Models()})())
+        reg = _make_registry(["gemini-3.8-flash"])
+        assert reg._probe("lyria-3.5") and reg._probe("lyria-3.5")
+        assert calls == ["lyria-3.5"]
