@@ -12,6 +12,7 @@ from ...tools.registry import tool
 from ...services import types, MODELS, client, conversation_memory, CONVERSATION_MAX_TURNS
 from ...utils.tokens import estimate_tokens
 from ...core import config
+from ...core.security import validate_path, glob_root_allowed, SENSITIVE_DIR_NAMES
 
 
 ANALYSIS_INSTRUCTIONS = {
@@ -99,20 +100,45 @@ def analyze_codebase(
     """
     Analyze large codebases using Gemini's 1M token context window.
     """
-    # Expand glob patterns and collect files
+    # Expand glob patterns and collect files. Every path goes through the
+    # sandbox + credentials policy: this content is sent to Google.
     all_files = []
+    denied = 0
+
+    def allowed(path: str) -> Optional[str]:
+        nonlocal denied
+        try:
+            return validate_path(path)
+        except ValueError:
+            denied += 1
+            return None
+
     for pattern in files:
-        # Handle glob patterns
+        pattern = os.path.expanduser(pattern)
+        if not os.path.isabs(pattern):
+            pattern = os.path.join(config.sandbox_root, pattern)
         if '*' in pattern or '?' in pattern:
-            expanded = glob_module.glob(pattern, recursive=True)
-            all_files.extend([f for f in expanded if os.path.isfile(f)])
-        elif os.path.isfile(pattern):
-            all_files.append(pattern)
-        elif os.path.isdir(pattern):
-            # If directory, get all files recursively
-            for root, dirs, filenames in os.walk(pattern):
+            if not glob_root_allowed(pattern):  # before globbing: "/**/*" must not walk the disk
+                denied += 1
+                continue
+            for candidate in glob_module.glob(pattern, recursive=True):
+                resolved = allowed(candidate)
+                if resolved and os.path.isfile(resolved):
+                    all_files.append(resolved)
+            continue
+        resolved = allowed(pattern)
+        if not resolved:
+            continue
+        if os.path.isfile(resolved):
+            all_files.append(resolved)
+        elif os.path.isdir(resolved):
+            # Recurse without following symlinks and without entering credential dirs
+            for root, dirs, filenames in os.walk(resolved, followlinks=False):
+                dirs[:] = [d for d in dirs if d.casefold() not in SENSITIVE_DIR_NAMES and d != ".git"]
                 for filename in filenames:
-                    all_files.append(os.path.join(root, filename))
+                    file_resolved = allowed(os.path.join(root, filename))
+                    if file_resolved:
+                        all_files.append(file_resolved)
 
     # Remove duplicates while preserving order
     seen = set()
@@ -124,6 +150,9 @@ def analyze_codebase(
     all_files = unique_files
 
     if not all_files:
+        if denied:
+            return ("**Error**: No readable files: the paths are outside the sandbox (GEMINI_SANDBOX_ROOT) "
+                    "or are protected credentials.")
         return "**Error**: No files found matching the provided patterns."
 
     # Read file contents
@@ -251,6 +280,7 @@ Structure your response clearly with sections and specific file references where
 **Model:** {model_id}
 **Analysis Type:** {analysis_type}
 {f"**Skipped:** {len(skipped_files)} files" if skipped_files else ""}
+{f"**Not sent (outside sandbox or credentials):** {denied} paths" if denied else ""}
 
 ---
 

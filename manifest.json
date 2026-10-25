@@ -2,7 +2,7 @@
   "dxt_version": "0.1",
   "name": "omni-ai-mcp",
   "display_name": "Omni AI MCP",
-  "version": "4.8.1",
+  "version": "4.8.2",
   "description": "Multi-AI MCP bridge: Gemini + 400+ models via OpenRouter. 28 tools: text, code, images, video (Omni), music (Lyria), TTS and voices, transcription, video analysis, embeddings, RAG, Deep Research, Antigravity agent.",
   "author": {
     "name": "Marco Armellino",
@@ -21,7 +21,8 @@
       "args": ["omni-ai-mcp"],
       "env": {
         "GEMINI_API_KEY": "${user_config.gemini_api_key}",
-        "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}"
+        "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}",
+        "GEMINI_SANDBOX_ROOT": "${user_config.workspace_dir}"
       }
     }
   },
@@ -41,6 +42,12 @@
       "title": "OpenRouter API Key",
       "description": "Optional. Enables 400+ models (GPT-4o, Llama, Mistral, Claude via OR). Get yours at https://openrouter.ai/keys",
       "sensitive": true,
+      "required": false
+    },
+    "workspace_dir": {
+      "type": "directory",
+      "title": "Workspace folder",
+      "description": "Optional. The only folder the tools may read files from and save files to. Empty = ~/omni-ai-workspace (created on first run). Credentials (~/.ssh, .env, keys) are always refused.",
       "required": false
     }
   }

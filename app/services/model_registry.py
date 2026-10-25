@@ -21,8 +21,10 @@ version numbers are not comparable across schemes (Nano Banana 2.1 is newer
 than gemini-3.1-flash-image although 2.1 < 3.1).
 """
 
+import functools
 import os
 import re
+import threading
 import time
 import warnings
 from dataclasses import dataclass, field
@@ -36,8 +38,15 @@ _VersionKey = Tuple[int, int, int, int]
 
 # Words that, right after the version, mark a non-flagship family. Used by the
 # flagship ("pro") pattern so Gemini 4 codenames (gemini-4-argon) qualify while
-# flash/lite/live/... never do.
-_NON_FLAGSHIP = "flash|lite|live|tts|image|transcribe|embedding|robotics|omni|nano|computer|pro-"
+# flash/lite/live/... never do. Codenames only count from Gemini 4 on: older
+# single-word IDs (gemini-2.0-exp) were experiments, not flagships.
+_NON_FLAGSHIP = "flash|lite|live|tts|image|transcribe|embedding|robotics|omni|nano|computer|exp|latest|thinking"
+_FLAGSHIP_PATTERN = (
+    r"^gemini-"
+    r"(?=\d+(?:\.\d+)?-pro(?:-preview)?$"                              # any -pro release
+    rf"|(?:[4-9]|[1-9]\d+)(?:\.\d+)?-(?!(?:{_NON_FLAGSHIP})$)[a-z]+(?:-preview)?$)"  # 4+ codename
+    r"(\d+)(?:\.(\d+))?-[a-z]+(?:-preview)?$"
+)
 
 
 @dataclass(frozen=True)
@@ -85,7 +94,7 @@ def _spec(patterns, fallbacks, env_var, config_attr, version_groups=(1, 2)) -> C
 CATEGORY_SPECS: Dict[str, CategorySpec] = {
     "text_pro": _spec(
         # gemini-3.1-pro-preview, gemini-2.5-pro, and Gemini 4 codenames (gemini-4-argon)
-        rf"^gemini-(\d+)(?:\.(\d+))?-(?:pro|(?!{_NON_FLAGSHIP})[a-z]+)(?:-preview)?$",
+        _FLAGSHIP_PATTERN,
         ["gemini-4-argon", "gemini-3.1-pro-preview", "gemini-2.5-pro"],
         "GEMINI_MODEL_PRO", "model_pro",
     ),
@@ -208,6 +217,15 @@ class Resolution:
     candidates: List[str]       # ranked auto-detect matches (best first)
 
 
+def _locked(method):
+    """Run a ModelRegistry method under the instance's re-entrant lock."""
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+    return wrapper
+
+
 class ModelRegistry:
     """
     Discovers available Gemini models via API and resolves the best one per category.
@@ -222,6 +240,8 @@ class ModelRegistry:
         self._cache_ttl: float = _CACHE_TTL
         self._resolved: Dict[str, Resolution] = {}
         self._probed: Dict[str, bool] = {}
+        # FastMCP runs sync tools in worker threads: refresh/resolve must not interleave
+        self._lock = threading.RLock()
 
     # ------------------------------------------------------------------ cache
 
@@ -259,10 +279,12 @@ class ModelRegistry:
             self._cache_timestamp = time.time()
             self._cache_ttl = _FAILURE_RETRY_TTL
 
+    @_locked
     def _ensure_fresh(self) -> None:
         if not self._is_cache_valid():
             self._refresh_cache()
 
+    @_locked
     def _probe(self, model_id: str) -> bool:
         """True if the API serves model_id even though models.list() omits it."""
         if model_id in self._probed:
@@ -295,6 +317,7 @@ class ModelRegistry:
     def autodetect_enabled() -> bool:
         return config.model_autodetect
 
+    @_locked
     def rank_candidates(self, category: str) -> List[str]:
         """Available models matching the category patterns, newest first."""
         spec = CATEGORY_SPECS.get(category)
@@ -308,6 +331,7 @@ class ModelRegistry:
         keyed.sort(key=lambda kv: (kv[0], kv[1]), reverse=True)
         return [name for _, name in keyed]
 
+    @_locked
     def explain(self, category: str) -> Resolution:
         """Resolve a category and say where the answer came from."""
         if category in self._resolved and self._is_cache_valid():
@@ -363,6 +387,7 @@ class ModelRegistry:
 
     # ------------------------------------------------------------ reporting
 
+    @_locked
     def list_available(self) -> Dict[str, object]:
         """Return the resolved model per category plus deprecation warnings."""
         self._ensure_fresh()
@@ -377,6 +402,7 @@ class ModelRegistry:
 
         return result
 
+    @_locked
     def check_deprecated(self) -> List[str]:
         """Return config model values that are no longer in the available list."""
         self._ensure_fresh()
@@ -394,6 +420,7 @@ class ModelRegistry:
 
         return deprecated
 
+    @_locked
     def invalidate_cache(self) -> None:
         """Force cache refresh on next access."""
         self._available_model_names = None

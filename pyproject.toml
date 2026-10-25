@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "omni-ai-mcp"
-version = "4.8.1"
+version = "4.8.2"
 description = "MCP server bridging Claude with Google Gemini (video, music, voice, images, Deep Research, agents, 1M context) and 400+ OpenRouter models"
 readme = "README.md"
 license = {text = "MIT"}

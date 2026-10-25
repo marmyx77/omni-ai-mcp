@@ -265,6 +265,87 @@ def is_binary_file(file_path: str, check_content: bool = True) -> bool:
 # PATH VALIDATION
 # =============================================================================
 
+# Credentials and secrets a tool must never read or write, whatever the sandbox
+# says (the server is driven by an LLM that prompt injection can steer).
+SENSITIVE_DIR_NAMES = frozenset({
+    ".ssh", ".gnupg", ".aws", ".azure", ".kube", ".password-store", ".gcloud",
+    "keychains", ".1password", ".docker", ".terraform.d", ".vault-token", ".m2",
+})
+SENSITIVE_FILE_NAMES = frozenset({
+    ".claude.json", ".netrc", ".npmrc", ".pypirc", ".git-credentials", ".pgpass",
+    ".boto", ".s3cfg", "credentials", "credentials.json", "credentials.db", "credentials.toml",
+    "secrets.json", "secrets.yaml", "secrets.yml", "service-account.json",
+    ".bash_history", ".zsh_history", ".python_history", ".psql_history", ".mysql_history",
+})
+SENSITIVE_FILE_PREFIXES = ("id_rsa", "id_dsa", "id_ecdsa", "id_ed25519", ".env")
+SENSITIVE_SUFFIXES = (".pem", ".key", ".p12", ".pfx", ".kdbx", ".keychain", ".keychain-db", ".ppk", ".asc", ".gpg")
+SENSITIVE_HOME_SUBPATHS = (
+    ".claude", ".config/gcloud", ".config/gh", ".config/op", ".config/rclone",
+    ".local/share/keyrings", "library/application support", "library/cookies",
+)
+
+# Files and folders a tool may READ inside the workspace but never WRITE: agent
+# instructions and editor/VCS hooks would turn a prompt-injected output_path into
+# persistent prompt injection or code execution (.git/hooks, .vscode/tasks.json).
+WRITE_PROTECTED_DIR_NAMES = frozenset({".git", ".claude", ".vscode", ".idea", ".husky", ".cursor"})
+WRITE_PROTECTED_FILE_NAMES = frozenset({"claude.md", "agents.md", "gemini.md", ".mcp.json", ".cursorrules"})
+
+
+def _fold(path: str) -> str:
+    """Case-folded path: macOS and Windows file systems ignore case (~/.SSH == ~/.ssh)."""
+    return os.path.normcase(path).casefold()
+
+
+def _is_within(path: str, root: str) -> bool:
+    """True if path equals root or lies under it (case-folded, works for root = '/')."""
+    path, root = _fold(path), _fold(root)
+    try:
+        return os.path.commonpath([path, root]) == root
+    except ValueError:  # different drives on Windows
+        return False
+
+
+def sensitive_reason(resolved_path: str) -> Optional[str]:
+    """Why a resolved path is off-limits (credentials, keys, secrets), or None."""
+    path = Path(resolved_path)
+    parts = {part.casefold() for part in path.parts}
+    hit = parts & SENSITIVE_DIR_NAMES
+    if hit:
+        return f"inside a credentials directory ({sorted(hit)[0]})"
+    name = path.name
+    lower = name.casefold()
+    if lower in SENSITIVE_FILE_NAMES:
+        return f"credentials file ({name})"
+    if lower.startswith(SENSITIVE_FILE_PREFIXES) and not lower.endswith((".example", ".sample", ".template")):
+        return f"key or environment file ({name})"
+    if lower.endswith(SENSITIVE_SUFFIXES):
+        return f"key/certificate file ({name})"
+    home = os.path.realpath(os.path.expanduser("~"))
+    for sub in SENSITIVE_HOME_SUBPATHS:
+        if _is_within(resolved_path, os.path.join(home, sub)):
+            return f"private application data (~/{sub})"
+    return None
+
+
+def write_protected_reason(resolved_path: str) -> Optional[str]:
+    """Why a tool must not WRITE this path (agent instructions, VCS/editor hooks), or None."""
+    path = Path(resolved_path)
+    hit = {part.casefold() for part in path.parts[:-1]} & WRITE_PROTECTED_DIR_NAMES
+    if hit:
+        return f"files inside {sorted(hit)[0]}/ are never written by tools"
+    if path.name.casefold() in WRITE_PROTECTED_FILE_NAMES:
+        return f"{path.name} is never written by tools"
+    return None
+
+
+def output_base_dir() -> str:
+    """Private folder for outputs written without output_path (GEMINI_OUTPUT_DIR overrides)."""
+    if config.output_dir:
+        return os.path.realpath(config.output_dir)
+    owner = os.getuid() if hasattr(os, "getuid") else "user"
+    return os.path.realpath(os.path.join(tempfile.gettempdir(), f"omni-ai-mcp-{owner}"))
+
+
 def validate_path(file_path: str, allow_outside_sandbox: bool = False) -> str:
     """
     Validate and resolve a file path, ensuring it's within the sandbox.
@@ -272,7 +353,9 @@ def validate_path(file_path: str, allow_outside_sandbox: bool = False) -> str:
     Security features:
     - Prevents directory traversal attacks (../)
     - Resolves symlinks to check actual destination
-    - Blocks access outside SANDBOX_ROOT (unless disabled)
+    - Refuses credentials and keys, even with the sandbox disabled
+    - Blocks access outside SANDBOX_ROOT (unless disabled); the private output
+      folder is also allowed, so generated files can feed other tools
 
     Args:
         file_path: The path to validate (absolute or relative)
@@ -284,10 +367,9 @@ def validate_path(file_path: str, allow_outside_sandbox: bool = False) -> str:
     Raises:
         ValueError: If path is outside sandbox or invalid
     """
-    if not config.sandbox_enabled or allow_outside_sandbox:
-        return os.path.abspath(file_path)
+    file_path = os.path.expanduser(str(file_path))
 
-    # Convert to absolute path
+    # Convert to absolute path (relative paths are relative to the sandbox root)
     if not os.path.isabs(file_path):
         file_path = os.path.join(config.sandbox_root, file_path)
 
@@ -297,13 +379,119 @@ def validate_path(file_path: str, allow_outside_sandbox: bool = False) -> str:
     except (OSError, ValueError) as e:
         raise ValueError(f"Invalid path: {e}")
 
-    # Check if within sandbox
-    sandbox_resolved = os.path.realpath(config.sandbox_root)
-    if not resolved_path.startswith(sandbox_resolved + os.sep) and resolved_path != sandbox_resolved:
-        # SECURITY: Don't expose full paths in error messages
-        raise ValueError("Access denied: path is outside allowed directory")
+    # Credentials are refused even with the sandbox disabled
+    reason = sensitive_reason(resolved_path)
+    if reason:
+        raise ValueError(f"Access denied: {reason} is protected")
 
-    return resolved_path
+    if not config.sandbox_enabled or allow_outside_sandbox:
+        return resolved_path
+
+    if _is_within(resolved_path, os.path.realpath(config.sandbox_root)):
+        return resolved_path
+    if _is_within(resolved_path, output_base_dir()) and _owned_private_dir(output_base_dir()):
+        return resolved_path
+    # SECURITY: Don't expose full paths in error messages
+    raise ValueError(
+        "Access denied: path is outside allowed directory "
+        "(set GEMINI_SANDBOX_ROOT to the folder the tools may use)"
+    )
+
+
+def glob_root_allowed(pattern: str) -> bool:
+    """True if the fixed (wildcard-free) prefix of a glob is an allowed path.
+
+    Checked BEFORE globbing, so `/**/*` never walks the whole disk.
+    """
+    fixed = []
+    for part in Path(pattern).parts:
+        if any(ch in part for ch in "*?["):
+            break
+        fixed.append(part)
+    prefix = os.path.join(*fixed) if fixed else config.sandbox_root
+    try:
+        validate_path(prefix)
+        return True
+    except ValueError:
+        return False
+
+
+def safe_input_path(file_path: str, allowed_extensions: Optional[set] = None, must_exist: bool = True) -> str:
+    """
+    Validate a path a tool will READ (and possibly upload to Google).
+
+    Sandbox + credentials policy (validate_path), optional extension allowlist,
+    existence check. Raises ValueError with a user-facing message.
+    """
+    if not file_path or not str(file_path).strip():
+        raise ValueError("empty file path")
+    resolved = validate_path(file_path)
+    if allowed_extensions is not None:
+        ext = os.path.splitext(resolved)[1].lower()
+        if ext not in allowed_extensions:
+            raise ValueError(
+                f"unsupported file type '{ext or '(none)'}'; allowed: {', '.join(sorted(allowed_extensions))}"
+            )
+    if must_exist and not os.path.exists(resolved):
+        raise ValueError(f"file not found: {os.path.basename(resolved)}")
+    return resolved
+
+
+def safe_output_path(file_path: str, allowed_extensions: set) -> str:
+    """
+    Validate a path a tool will WRITE: sandbox + credentials policy, mandatory
+    extension allowlist (so outputs can never become ~/.zshrc, authorized_keys,
+    LaunchAgents plists...), no agent-instruction or hook files (CLAUDE.md,
+    .claude/, .git/, .vscode/), no writing through symlinks, parent created
+    inside the sandbox. Raises ValueError.
+    """
+    if not file_path or not str(file_path).strip():
+        raise ValueError("empty output path")
+    expanded = os.path.expanduser(str(file_path))
+    if not os.path.isabs(expanded):
+        expanded = os.path.join(config.sandbox_root, expanded)
+    if os.path.islink(expanded):
+        raise ValueError("refusing to write through a symbolic link")
+    resolved = validate_path(expanded)
+    protected = write_protected_reason(resolved)
+    if protected:
+        raise ValueError(f"Access denied: {protected}")
+    ext = os.path.splitext(resolved)[1].lower()
+    if ext not in allowed_extensions:
+        raise ValueError(
+            f"output must end with {', '.join(sorted(allowed_extensions))} (got '{ext or '(none)'}')"
+        )
+    parent = os.path.dirname(resolved)
+    validate_path(parent)
+    os.makedirs(parent, exist_ok=True)
+    return resolved
+
+
+def _owned_private_dir(path: str) -> bool:
+    """True if path is a directory owned by this user (a shared /tmp can hold a planted one)."""
+    try:
+        info = os.stat(path)
+    except OSError:
+        return False
+    return not hasattr(os, "getuid") or info.st_uid == os.getuid()
+
+
+def default_output_path(stem: str, extension: str) -> str:
+    """
+    Unique, unpredictable output file in a private (0700) folder, for tools
+    called without output_path. GEMINI_OUTPUT_DIR overrides the folder.
+    """
+    base = output_base_dir()
+    os.makedirs(base, mode=0o700, exist_ok=True)
+    if not _owned_private_dir(base):
+        raise ValueError(f"output folder {base} belongs to another user: set GEMINI_OUTPUT_DIR")
+    try:
+        os.chmod(base, 0o700)
+    except OSError:
+        pass
+    fd, path = tempfile.mkstemp(prefix=f"{stem}_", suffix=extension, dir=base)
+    os.close(fd)
+    return path
 
 
 def check_file_size(file_path: str, max_size: int = None) -> Optional[Dict[str, str]]:
@@ -420,7 +608,10 @@ class SecretsSanitizer:
         (r'ghr_[a-zA-Z0-9]{36}', 'GITHUB_REFRESH_TOKEN'),
         # Anthropic API keys - bounded length
         (r'sk-ant-[a-zA-Z0-9\-_]{40,100}', 'ANTHROPIC_API_KEY'),
-        # OpenAI API keys - exact length
+        # OpenRouter API keys - bounded length (sk-or-v1-<64 hex>)
+        (r'sk-or-v1-[a-fA-F0-9]{32,128}', 'OPENROUTER_API_KEY'),
+        # OpenAI API keys (legacy and project keys) - bounded length
+        (r'sk-proj-[a-zA-Z0-9\-_]{20,200}', 'OPENAI_API_KEY'),
         (r'sk-[a-zA-Z0-9]{48}', 'OPENAI_API_KEY'),
         # Slack tokens - bounded length
         (r'xox[baprs]-[0-9a-zA-Z\-]{10,50}', 'SLACK_TOKEN'),

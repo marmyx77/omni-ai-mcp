@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.8.1
+**Version:** 4.8.2
 **SDK:** google-genai >= 2.33.0 (Interactions API 'steps' schema, Voices API, video/speech/agent request schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.8.1)
+## Architecture (v4.8.2)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -275,8 +275,10 @@ class MyToolInput(BaseModel):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | Required | Google Gemini API key |
-| `GEMINI_SANDBOX_ROOT` | cwd | Root directory for file access |
-| `GEMINI_SANDBOX_ENABLED` | true | Enable path sandboxing |
+| `GEMINI_SANDBOX_ROOT` | cwd, or `~/omni-ai-workspace` if cwd is `/` or home | The only folder tools read from / write to (`@file`, codebase analysis, media inputs, uploads, `output_path`) |
+| `GEMINI_SANDBOX_ENABLED` | true | Enable path sandboxing (the credentials deny-list applies either way) |
+| `GEMINI_OUTPUT_DIR` | private temp dir (0700) | Where media/transcripts go when no `output_path` is given |
+| `GEMINI_REQUEST_TIMEOUT` | 900 | Seconds per Gemini HTTP request (genai client `HttpOptions.timeout`) |
 | `GEMINI_MAX_FILE_SIZE` | 102400 | Max file size in bytes (100KB) |
 | `GEMINI_ACTIVITY_LOG` | true | Enable activity logging |
 | `GEMINI_LOG_DIR` | ~/.omni-ai-mcp | Log directory |
@@ -297,19 +299,25 @@ class MyToolInput(BaseModel):
 | `GEMINI_MODEL_ROBOTICS` | auto-detected | Pin the Robotics ER model |
 | `GEMINI_MAX_OUTPUT_TOKENS` | 65536 | Output budget (thinking + answer share it on Gemini 3+; Google recommends ≥ 32K) |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
-| `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
+| `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | `ask_model` with no model and `provider="openrouter"` or no Gemini key |
 | `OPENROUTER_TIMEOUT` | 120 | OpenRouter generation timeout in seconds (search models need headroom) |
 
 ## Security Features
 
-### Path Sandboxing
+### Path Sandboxing (v4.8.2: enforced on every tool path)
 ```python
-from app.core.security import validate_path, secure_read_file
+from app.core.security import validate_path, safe_input_path, safe_output_path, default_output_path
 
-# Validates path is within sandbox, blocks traversal attacks
+# Resolves symlinks, must stay inside GEMINI_SANDBOX_ROOT; credentials refused even with the sandbox off
 safe_path = validate_path(user_input)
-content = secure_read_file(file_path)
+# Inputs a tool reads/uploads: + extension allowlist + existence ("file not found: <name>")
+audio = safe_input_path(audio_path, allowed_extensions={".wav", ".mp3"})
+# Outputs: mandatory extension allowlist, no symlink, parent created inside the sandbox
+out = safe_output_path(output_path, {".png"})
+# No output_path: unique file in a private 0700 folder (GEMINI_OUTPUT_DIR overrides)
+out = default_output_path("image", ".png")
 ```
+Writes also refuse agent-instruction and hook files (`write_protected_reason`: `CLAUDE.md`, `AGENTS.md`, `.mcp.json`, `.git/`, `.claude/`, `.vscode/`…), `gemini_generate_code` included. Globs are checked on their fixed prefix before walking (`glob_root_allowed`). The deny-list compares case-folded paths. The private output folder is readable, so generated files feed other tools. Never read or write a user-supplied path without one of these. `@file` expansion (`utils/file_refs.py`) and `gemini_analyze_codebase` validate every ref, glob match and walked file; the deny-list (`sensitive_reason`) covers `~/.ssh`, `.env*`, keys, `~/.claude*`, cloud CLI configs.
 
 ### Safe File Writing
 ```python
@@ -561,7 +569,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->18<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
+Test files: <!--fact:unit-test-files-->20<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -583,6 +591,8 @@ tests/
 │   ├── test_media_tools_v48.py    # Omni video, TTS 3.8, Lyria, video analysis, voices (requests validated against the SDK schema)
 │   ├── test_text_agent_embed_v48.py # sampling params, 64K budget, quota fallback, Gemma, embeddings, Antigravity, image options
 │   ├── test_openrouter_client.py  # OpenRouter client, citations
+│   ├── test_path_policy.py        # sandbox + credentials deny-list: inputs, outputs, @file, codebase walk, download hosts
+│   ├── test_provider_resilience.py # OpenRouter retry/errors, ask_model routing, quota fallback, registry pattern + lock
 │   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
     ├── test_fastmcp_server.py     # FastMCP initialization
@@ -781,7 +791,14 @@ The flagship (`text_pro`) pattern accepts `-pro` and Gemini 4 codenames (`gemini
 
 ## Roadmap
 
-### v4.8.1 (Current) - GitHub/PyPI polish
+### v4.8.2 (Current) - Security hardening
+- ✅ Workspace boundary enforced on `@file` refs, codebase analysis, every media/document input and output; credentials deny-list even with the sandbox off; default root never `/` or home
+- ✅ Outputs: extension allowlist, no symlinks, private 0700 default folder; media downloads send the key only to Google hosts
+- ✅ OpenRouter: retries on 429/5xx/network, errors in 200 responses, empty content, sanitized error bodies; `provider="openrouter"` always honoured
+- ✅ Flash fallback only on real quota errors and only for aliases; Gemini HTTP timeout; registry lock + stricter flagship pattern
+- ✅ CI: actions pinned to SHAs, read-only token, publish split into build / pypi (OIDC only) / release jobs; installers write `~/.claude.json` with mode 600
+
+### v4.8.1 (Released) - GitHub/PyPI polish
 - ✅ README, CONTRIBUTING, SECURITY rewritten; Code of Conduct, issue forms, PR template; PyPI metadata and absolute links
 - ✅ Fixed: Dockerfile (ran a removed `server.py`), SQLite DB ignoring `GEMINI_LOG_DIR`, `setup.sh` installing incompatible deps
 - ✅ `install_release.sh` and `setup.sh` pick a Python ≥ 3.10 (uv fallback); `/gemini-video`, `/gemini-music`, `/gemini-watch`

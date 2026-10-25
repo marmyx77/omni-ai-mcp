@@ -18,6 +18,7 @@ from ...tools.registry import tool
 from ...services import client, types, is_available, get_error
 from ...services.model_registry import model_registry
 from ...core import log_progress
+from ...core.security import safe_input_path, safe_output_path
 
 
 AUDIO_MIME_TYPES = {
@@ -238,12 +239,19 @@ def _audio_part(audio_path: str, mime_type: str):
 
     log_progress(f"transcribe_audio: {size // (1024 * 1024)} MB → uploading via Files API")
     uploaded = client.files.upload(file=audio_path, config={"mime_type": mime_type})
-    deadline = time.time() + FILE_ACTIVE_TIMEOUT_SECONDS
-    while _state_name(uploaded) not in ("ACTIVE", "FAILED") and time.time() < deadline:
-        time.sleep(2)
-        uploaded = client.files.get(name=uploaded.name)
-    if _state_name(uploaded) != "ACTIVE":
-        raise RuntimeError(f"Files API did not make the upload ACTIVE in time (state={_state_name(uploaded)})")
+    try:
+        deadline = time.time() + FILE_ACTIVE_TIMEOUT_SECONDS
+        while _state_name(uploaded) not in ("ACTIVE", "FAILED") and time.time() < deadline:
+            time.sleep(2)
+            uploaded = client.files.get(name=uploaded.name)
+        if _state_name(uploaded) != "ACTIVE":
+            raise RuntimeError(f"Files API did not make the upload ACTIVE in time (state={_state_name(uploaded)})")
+    except Exception:
+        try:
+            client.files.delete(name=uploaded.name)
+        except Exception:
+            pass
+        raise
     return types.Part.from_uri(file_uri=uploaded.uri, mime_type=uploaded.mime_type or mime_type), uploaded.name
 
 
@@ -252,8 +260,11 @@ def _state_name(uploaded: Any) -> str:
     return getattr(state, "name", None) or str(state or "")
 
 
+TRANSCRIPT_EXTENSIONS = {".json", ".txt", ".md"}
+
+
 def _save(output_path: str, result: Dict[str, Any], formatted: str, model_id: str) -> str:
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    output_path = safe_output_path(output_path, TRANSCRIPT_EXTENSIONS)
     if output_path.lower().endswith(".json"):
         payload = {"model": model_id, **result}
         with open(output_path, "w", encoding="utf-8") as fh:
@@ -287,8 +298,12 @@ def transcribe_audio(
     """
     if not is_available():
         return f"Error: {get_error()}"
-    if not os.path.isfile(audio_path):
-        return f"Error: audio file not found: {audio_path}"
+    try:
+        audio_path = safe_input_path(audio_path)
+    except ValueError as e:
+        if "not found" in str(e):
+            return f"Error: audio file not found: {audio_path}"
+        return f"Error: {e}"
     ext = os.path.splitext(audio_path)[1].lower()
     mime_type = AUDIO_MIME_TYPES.get(ext)
     if not mime_type:
@@ -333,7 +348,10 @@ def transcribe_audio(
 
         saved = ""
         if output_path:
-            saved = f"\n\n*Saved to: {_save(output_path, result, formatted, model_id)}*"
+            try:
+                saved = f"\n\n*Saved to: {_save(output_path, result, formatted, model_id)}*"
+            except ValueError as e:
+                saved = f"\n\n*Not saved: {e}*"
         return f"{header}\n\n{formatted}{saved}"
 
     except Exception as e:

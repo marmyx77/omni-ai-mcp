@@ -46,6 +46,7 @@ Everything Google shipped in the Gemini API from June to October 2026, except th
 - **Gemini 4 Argon** is the new `pro`. **Gemini Omni Flash** replaces Veo for video (Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22).
 - **Nano Banana 2.1 and 2 Lite** for images, **Gemini 3.8 TTS** with the Voice Library, voice design and voice replication.
 - **Seven new tools**: video understanding, music, three voice tools, multimodal embeddings, the Antigravity agent. Plus Deep Research Max, Robotics ER and Gemma 4.
+- **4.8.2 is a security release**: every file a tool reads or writes now stays inside the workspace, credentials are always refused, and OpenRouter calls retry on transient errors. See [Security](#security).
 
 Full history: [CHANGELOG.md](https://github.com/marmyx77/omni-ai-mcp/blob/main/CHANGELOG.md).
 
@@ -234,7 +235,12 @@ Ranking: a newer naming scheme beats an older one (Gemini 4 codenames, Nano Bana
 
 **Thinking**: `ask_gemini` takes `thinking_level` `auto` (default), `low`, `medium` or `high`. Gemini 3+ always reasons, so `auto` is not zero. `temperature` is accepted for compatibility but only reaches Gemini 2.x, Gemma and OpenRouter models: Google deprecated sampling parameters from Gemini 3.6.
 
-**OpenRouter** (via `ask_model`): any ID from [openrouter.ai/models](https://openrouter.ai/models), for example `openai/gpt-4o`, `anthropic/claude-sonnet-5.5`, `x-ai/grok-4.7`, `deepseek/deepseek-v4-pro`, `meta-llama/llama-4-maverick`, `mistralai/mistral-large-2512`, `perplexity/sonar-pro` (web search with citations). Gemini models go to the native API when `GEMINI_API_KEY` is set, otherwise to OpenRouter's `google/…` mirror.
+**OpenRouter** (via `ask_model`): any ID from [openrouter.ai/models](https://openrouter.ai/models), for example `openai/gpt-4o`, `anthropic/claude-sonnet-5.5`, `x-ai/grok-4.7`, `deepseek/deepseek-v4-pro`, `meta-llama/llama-4-maverick`, `mistralai/mistral-large-2512`, `perplexity/sonar-pro` (web search with citations). Routing rules:
+
+- `provider="auto"` (default): Gemini IDs and aliases go to the native API when `GEMINI_API_KEY` is set, otherwise to OpenRouter's `google/…` mirror. Any other ID goes to OpenRouter. No model means `pro`, or `OPENROUTER_DEFAULT_MODEL` without a Gemini key.
+- `provider="openrouter"`: always OpenRouter. Gemini IDs and aliases become `google/<id>`; no model means `OPENROUTER_DEFAULT_MODEL`.
+- `provider="gemini"`: native API only.
+- An explicit Gemini ID is never swapped for Flash on a quota error; the aliases (`pro`, `flash`) are.
 
 ---
 
@@ -246,7 +252,7 @@ All settings are environment variables, passed with `-e` in `claude mcp add` or 
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | **required** | Google Gemini API key |
 | `OPENROUTER_API_KEY` | — | Enables 400+ models in `ask_model` |
-| `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Model used when `ask_model` gets no model and no Gemini key |
+| `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Model `ask_model` uses with no model and either `provider="openrouter"` or no Gemini key |
 | `OPENROUTER_TIMEOUT` | `120` | Seconds; raise for slow search models (`perplexity/sonar-deep-research`) |
 | `GEMINI_MODEL_AUTODETECT` | `true` | `false` = static fallbacks instead of the live model list |
 | `GEMINI_MODEL_PRO` · `_FLASH` · `_FLASH_LITE` | auto | Pin a text model (an explicit value always wins) |
@@ -257,14 +263,18 @@ All settings are environment variables, passed with `-e` in `claude mcp add` or 
 | `GEMINI_MODEL_DEEP_RESEARCH` · `_DEEP_RESEARCH_MAX` · `GEMINI_MODEL_AGENT` | auto | Pin agent versions |
 | `GEMINI_MODEL_EMBEDDING` · `GEMINI_MODEL_ROBOTICS` | auto | Pin embedding / Robotics ER models |
 | `GEMINI_MAX_OUTPUT_TOKENS` | `65536` | Output budget per call (thinking and answer share it) |
-| `GEMINI_SANDBOX_ROOT` | current dir | Root for file access by the tools |
-| `GEMINI_SANDBOX_ENABLED` | `true` | Path sandboxing on/off |
+| `GEMINI_SANDBOX_ROOT` | current dir* | The only folder the tools may read from and write to (`@file`, codebase analysis, uploads, `output_path`) |
+| `GEMINI_SANDBOX_ENABLED` | `true` | Path sandboxing on/off. Credentials stay refused either way |
+| `GEMINI_OUTPUT_DIR` | private temp folder | Where generated media and transcripts go when no `output_path` is given |
+| `GEMINI_REQUEST_TIMEOUT` | `900` | Seconds before a single Gemini HTTP request is abandoned |
 | `GEMINI_MAX_FILE_SIZE` | `102400` | Max bytes per file for `@file` and code tools |
 | `GEMINI_LOG_DIR` | `~/.omni-ai-mcp` | Activity log and SQLite conversation memory |
 | `GEMINI_LOG_FORMAT` | `text` | `text` or `json` |
 | `GEMINI_ACTIVITY_LOG` | `true` | Activity logging on/off |
 | `GEMINI_CONVERSATION_TTL_HOURS` · `_MAX_TURNS` | `3` · `50` | Local conversation expiry and length |
 | `GEMINI_DISABLED_TOOLS` | — | Comma-separated tool names to hide |
+
+\* The folder the client started the server in, unless that is `/` or your home folder (Claude Desktop does this): then `~/omni-ai-workspace`, created on first run. Set `GEMINI_SANDBOX_ROOT` to choose another folder.
 
 ---
 
@@ -325,11 +335,13 @@ Tools read and write files only under `/workspace`; logs and conversation memory
 |---------|-----|
 | Server not listed or not connected | `claude mcp list`; re-run the install command; restart Claude Code (running sessions keep the old server in memory) |
 | `429 … monthly spending cap` | Your Google AI Studio project hit its spend cap: raise it at [ai.studio/spend](https://ai.studio/spend). Listing models still works, generation does not |
-| `429 … rate limit` on `pro` | The server retries on Flash automatically; for sustained work pin `GEMINI_MODEL_PRO` to a cheaper model or raise your quota |
+| `429 … rate limit` on `pro` | With an alias (`pro`), the server retries on Flash automatically; an explicit model ID is not swapped. For sustained work pin `GEMINI_MODEL_PRO` to a cheaper model or raise your quota |
+| `Access denied: path is outside allowed directory` | The file is outside the workspace. Move it into the folder Claude Code runs in, or set `GEMINI_SANDBOX_ROOT` to the folder the tools may use |
+| `Access denied: … is protected` | Credentials (`~/.ssh`, `.env`, keys, `~/.claude.json`, cloud CLI configs) are never read or written, by design |
 | Video, music or research timed out | They keep running at Google: call the tool again with `retrieve_id` (video, music) or `continuation_id` and an empty query/task (Deep Research, agent) |
 | Video edit of an uploaded clip refused | Not available in the EEA, Switzerland and the UK; edit a generated clip via `continuation_id` instead |
 | A model "is not found" | Run `gemini_list_models`; remove stale `GEMINI_MODEL_*` pins; errors name the model and the package version that answered |
-| OpenRouter error | Check `OPENROUTER_API_KEY` credit and the exact ID with `gemini_list_models` |
+| OpenRouter error | Rate limits, 503 and connection errors are retried twice. Otherwise check `OPENROUTER_API_KEY` credit and the exact ID with `gemini_list_models(include_openrouter=True)` |
 | Update the API key | `claude mcp remove omni-ai-mcp -s user`, then run the install command again |
 
 ---
@@ -377,8 +389,12 @@ tests/                 unit/ and integration/ (hermetic)
 
 ## Security
 
-- File access is sandboxed to `GEMINI_SANDBOX_ROOT`; paths are resolved and traversal is blocked
-- API keys and tokens are masked in logs; writes are atomic with backups
+- Every path a tool reads, uploads or writes is resolved (symlinks included) and must stay inside `GEMINI_SANDBOX_ROOT`. That covers `@file` references, codebase analysis, media inputs and `output_path`
+- Credentials and keys (`~/.ssh`, `.env`, `*.pem`, `~/.claude.json`, cloud CLI configs…) are refused even with the sandbox off
+- Outputs need an allowed extension and never go through a symlink; without `output_path` they land in a private folder with random names, which the tools can read back
+- No tool writes agent instructions or hooks (`CLAUDE.md`, `.mcp.json`, `.claude/`, `.git/`, `.vscode/`…)
+- Media downloads send the API key only to Google hosts over HTTPS, never across a redirect
+- API keys and tokens are masked in logs and error messages; the installers write `~/.claude.json` with mode 600
 - LLM-generated XML is sanitized before parsing; tool inputs are validated with Pydantic
 - Voice replication requires the speaker's recorded consent, which Google verifies
 

@@ -34,8 +34,10 @@ ASK_MODEL_SCHEMA = {
             "type": "string",
             "enum": ["auto", "gemini", "openrouter"],
             "description": (
-                "Provider to use: 'auto' (detect from model name, default), "
-                "'gemini' (force Gemini API), 'openrouter' (force OpenRouter)"
+                "Provider to use: 'auto' (default: Gemini IDs and aliases go to the Gemini API, "
+                "falling back to OpenRouter's google/ mirror without a Gemini key; other IDs go to OpenRouter), "
+                "'gemini' (Gemini API only), 'openrouter' (always OpenRouter: Gemini IDs become google/<id>, "
+                "no model = OPENROUTER_DEFAULT_MODEL)"
             ),
             "default": "auto"
         },
@@ -106,12 +108,70 @@ def _resolve_gemini_model(model_id: str) -> str:
     return model_id
 
 
+_PROVIDERS = ("auto", "gemini", "openrouter")
+_NO_KEYS = (
+    "Error: No API key configured.\n"
+    "Set GEMINI_API_KEY for Gemini models, or "
+    "OPENROUTER_API_KEY to access 400+ models (Google ones included) via OpenRouter."
+)
+
+
+def _via_gemini(
+    prompt: str, model: Optional[str], system_prompt: Optional[str], temperature: float
+) -> str:
+    """Native Gemini API. Flash fallback on quota only when no exact ID was requested."""
+    resolved = _resolve_gemini_model(model or "pro")
+    explicit = model is not None and model.lower() not in _GEMINI_SHORT_NAMES
+    try:
+        # temperature is deprecated/ignored from Gemini 3.6 on: only 2.x and Gemma get it
+        config_kwargs = legacy_sampling(resolved, temperature)
+        if system_prompt:
+            config_kwargs["system_instruction"] = system_prompt
+        response = generate_with_fallback(
+            model_id=resolved,
+            contents=prompt,
+            config=types.GenerateContentConfig(**config_kwargs),
+            operation="ask_model",
+            allow_fallback=not explicit,
+        )
+    except Exception as e:
+        return f"Error: {e}"
+    return response.text or f"Error: empty response from {resolved} (possibly blocked by safety filters)"
+
+
+def _via_openrouter(
+    prompt: str, model: Optional[str], system_prompt: Optional[str], temperature: float
+) -> str:
+    """OpenRouter. Gemini IDs/aliases map to google/<id>; no model = the OpenRouter default."""
+    if not openrouter_client.is_available:
+        target = f"model '{model}'" if model else "OpenRouter"
+        return (
+            f"Error: OPENROUTER_API_KEY required to use {target}.\n"
+            "Set OPENROUTER_API_KEY to access 400+ models via OpenRouter."
+        )
+    or_model = model
+    if model is not None and _is_gemini_model(model):
+        resolved = _resolve_gemini_model(model)
+        or_model = _to_openrouter_google_id(resolved)
+        if or_model is None:
+            return (
+                f"Error: model '{resolved}' requires GEMINI_API_KEY "
+                "(video/image/music/deep-research models are not available via OpenRouter)."
+            )
+    return openrouter_client.generate(
+        prompt=prompt,
+        model=or_model,
+        system_prompt=system_prompt,
+        temperature=temperature,
+    )
+
+
 @tool(
     name="ask_model",
     description=(
         "Ask any AI model — Gemini or 400+ models via OpenRouter "
-        "(GPT-4o, Llama 3, Mistral, Claude, etc.). "
-        "Set provider='auto' to detect from model name. "
+        "(GPT, Claude, Llama, Mistral, Grok, DeepSeek, Perplexity…). "
+        "provider='auto' detects from the model name; provider='openrouter' always uses OpenRouter. "
         "Requires OPENROUTER_API_KEY for non-Gemini models. "
         "Use gemini_list_models to discover available options."
     ),
@@ -128,88 +188,47 @@ def ask_model(
     """
     Route prompt to Gemini or OpenRouter based on model/provider.
 
+    Routing:
+        provider='openrouter': always OpenRouter (Gemini IDs → google/<id>, no model → default)
+        provider='gemini': Gemini API only (non-Gemini IDs are an error)
+        provider='auto': Gemini IDs/aliases and no model → Gemini API, or OpenRouter
+            without a Gemini key; any other ID → OpenRouter
+
     Args:
         prompt: The question or prompt
-        model: Model ID (auto-resolved if omitted)
+        model: Model ID or alias (auto-resolved if omitted)
         provider: 'auto', 'gemini', or 'openrouter'
         system_prompt: Optional system message
         temperature: Sampling temperature 0-1
 
     Returns:
-        Model response text
+        Model response text, or a message starting with "Error:"
     """
-    from ...services.model_registry import model_registry
+    model = (model or "").strip() or None
+    provider = (provider or "auto").strip().lower()
+    if provider not in _PROVIDERS:
+        return f"Error: unknown provider '{provider}'. Use one of: {', '.join(_PROVIDERS)}."
 
-    gemini_model = model is not None and _is_gemini_model(model)
-    default_model = model is None
+    gemini_model = model is None or _is_gemini_model(model)
 
-    # --- provider="gemini" forced with non-Gemini model → error ---
-    if provider == "gemini" and not gemini_model and not default_model:
-        return (
-            f"Error: model '{model}' is not a Gemini model. "
-            "Use provider='auto' or provider='openrouter' for non-Gemini models."
-        )
+    if provider == "openrouter":
+        return _via_openrouter(prompt, model, system_prompt, temperature)
 
-    # --- Routing decision ---
-    # Gemini models: prefer native API, fall back to OpenRouter if no Gemini key
-    # OpenRouter models: require OpenRouter key
-    if gemini_model or default_model:
-        if is_available() and (gemini_model or provider != "openrouter"):
-            # ✅ Gemini key available → native Gemini API
-            resolved = _resolve_gemini_model(model or "pro")
-            try:
-                # temperature is deprecated/ignored from Gemini 3.6 on: only 2.x and Gemma get it
-                config_kwargs = legacy_sampling(resolved, temperature)
-                if system_prompt:
-                    config_kwargs["system_instruction"] = system_prompt
-                gen_config = types.GenerateContentConfig(**config_kwargs)
-                response = generate_with_fallback(
-                    model_id=resolved,
-                    contents=prompt,
-                    config=gen_config,
-                    operation="ask_model",
-                )
-                return response.text
-            except Exception as e:
-                return f"Error: {e}"
-
-        elif openrouter_client.is_available and provider != "gemini":
-            # ✅ No Gemini key (or provider=openrouter forced) → OpenRouter fallback
-            # Resolve short names first, then convert to OpenRouter google/ format
-            resolved = _resolve_gemini_model(model or "pro")
-            or_model = _to_openrouter_google_id(resolved)
-            if or_model is None:
-                return (
-                    f"Error: model '{resolved}' requires GEMINI_API_KEY "
-                    "(video/image/deep-research models are not available via OpenRouter)."
-                )
-            return openrouter_client.generate(
-                prompt=prompt,
-                model=or_model,
-                system_prompt=system_prompt,
-                temperature=temperature,
+    if provider == "gemini":
+        if not gemini_model:
+            return (
+                f"Error: model '{model}' is not a Gemini model. "
+                "Use provider='auto' or provider='openrouter' for non-Gemini models."
             )
+        if not is_available():
+            return f"Error: {get_error() or 'GEMINI_API_KEY is not configured'}"
+        return _via_gemini(prompt, model, system_prompt, temperature)
 
-        else:
-            # ❌ No keys available
-            if not is_available() and not openrouter_client.is_available:
-                return (
-                    "Error: No API key configured.\n"
-                    "Set GEMINI_API_KEY for Gemini models, or "
-                    "OPENROUTER_API_KEY to access Google models via OpenRouter."
-                )
-            return f"Error: {get_error()}"
-
-    # --- OpenRouter models (non-Gemini) ---
-    if not openrouter_client.is_available:
-        return (
-            f"Error: OPENROUTER_API_KEY required to use model '{model}'.\n"
-            "Set OPENROUTER_API_KEY to access 400+ models via OpenRouter."
-        )
-
-    return openrouter_client.generate(
-        prompt=prompt,
-        model=model,
-        system_prompt=system_prompt,
-        temperature=temperature,
-    )
+    # provider == "auto"
+    if not gemini_model:
+        return _via_openrouter(prompt, model, system_prompt, temperature)
+    if is_available():
+        return _via_gemini(prompt, model, system_prompt, temperature)
+    if openrouter_client.is_available:
+        return _via_openrouter(prompt, model, system_prompt, temperature)
+    return _NO_KEYS

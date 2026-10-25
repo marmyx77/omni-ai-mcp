@@ -21,6 +21,7 @@ from typing import Dict, List, Optional
 from ...tools.registry import tool
 from ...services import TTS_MODELS, TTS_VOICES, is_available, get_error
 from ...services import interactions as ix
+from ...core.security import safe_output_path, default_output_path
 
 FEATURED_VOICES = ", ".join(TTS_VOICES)
 MAX_SPEAKERS = 2
@@ -65,7 +66,7 @@ TTS_SCHEMA = {
             },
             "description": "Two-speaker dialogue: [{\"name\": \"Joe\", \"voice\": \"Puck\", \"style\": \"cheerful\"}, {\"name\": \"Jane\", \"voice\": \"Kore\"}]."
         },
-        "output_path": {"type": "string", "description": "Where to save the .wav (default /tmp)."}
+        "output_path": {"type": "string", "description": "Where to save the .wav, inside the workspace (default: a private temp folder, or GEMINI_OUTPUT_DIR)."}
     },
     "required": ["text"]
 }
@@ -178,10 +179,11 @@ def text_to_speech(
 
         audio = wav_bytes(ix.media_bytes(item), ix._get(item, "mime_type") or "", ix._get(item, "sample_rate"))
         if not output_path:
-            output_path = f"/tmp/gemini_tts_{int(time.time())}.wav"
-        elif not output_path.lower().endswith(".wav"):
-            output_path = os.path.splitext(output_path)[0] + ".wav"
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            output_path = default_output_path("gemini_tts", ".wav")
+        else:
+            if not output_path.lower().endswith(".wav"):
+                output_path = os.path.splitext(output_path)[0] + ".wav"
+            output_path = safe_output_path(output_path, {".wav"})
         with open(output_path, "wb") as fh:
             fh.write(audio)
 

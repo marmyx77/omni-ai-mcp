@@ -11,6 +11,7 @@ from typing import Optional, List
 from ...tools.registry import tool
 from ...services import types, MODELS, generate_with_fallback
 from ...core import config
+from ...core.security import safe_input_path
 
 
 MIME_TYPES = {
@@ -62,7 +63,8 @@ ANALYZE_IMAGE_SCHEMA = {
 
 
 def _load_image_part(image_path: str) -> types.Part:
-    """Load an image file and return a Gemini Part."""
+    """Load an image file (sandbox + credentials policy) and return a Gemini Part."""
+    image_path = safe_input_path(image_path, allowed_extensions=set(MIME_TYPES))
     ext = os.path.splitext(image_path)[1].lower()
     mime_type = MIME_TYPES.get(ext)
     if not mime_type:
@@ -109,9 +111,6 @@ def analyze_image(
             return "Error: Provide image_path or image_paths."
 
         # Validate all paths exist
-        missing = [p for p in paths if not os.path.exists(p)]
-        if missing:
-            return f"Error: Image(s) not found: {', '.join(missing)}"
 
         # Load image parts
         image_parts = []

@@ -1,22 +1,29 @@
 name: Publish to PyPI + Build .dxt
 
+# Three jobs so that only the step that needs a credential holds it:
+#   build   — read-only token, builds sdist/wheel, .dxt and plugin zip
+#   pypi    — OIDC token (Trusted Publishing), environment "pypi", publishes dist/
+#   release — contents:write, attaches the assets to the GitHub Release
+# Keep this filename and the "pypi" environment: PyPI's Trusted Publisher is bound to them.
+# Actions are pinned to commit SHAs (tag in the comment) against tag hijacking.
+
 on:
   push:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-publish:
+  build:
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write  # Required for Trusted Publishing
-      contents: write  # Required for uploading release assets
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
           cache: pip
@@ -25,9 +32,6 @@ jobs:
         run: |
           pip install build
           python -m build
-
-      - name: Publish to PyPI (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Build .dxt Desktop Extension
         run: |
@@ -39,11 +43,53 @@ jobs:
         run: bash scripts/build_plugin.sh
         continue-on-error: true
 
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v2
-        if: always()
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          files: |
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-assets
+          path: |
             omni-ai-mcp-v*.dxt
             omni-ai-mcp-v*.zip
             omni-ai-mcp-plugin-v*.zip
+          if-no-files-found: warn
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # Trusted Publishing (OIDC), nothing else
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # upload release assets
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-assets
+          path: assets/
+        continue-on-error: true
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          fail_on_unmatched_files: false
+          files: |
+            assets/omni-ai-mcp-v*.dxt
+            assets/omni-ai-mcp-v*.zip
+            assets/omni-ai-mcp-plugin-v*.zip

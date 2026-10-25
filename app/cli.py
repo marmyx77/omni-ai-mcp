@@ -19,10 +19,15 @@ def _read_json(path: Path) -> dict:
 
 
 def _write_json(path: Path, data: dict) -> None:
+    """Atomic, owner-only (0600) write: the file holds API keys."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
+    tmp = path.with_name(f"{path.name}.tmp-omni-{os.getpid()}")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
         json.dump(data, f, indent=2)
-    print(f"  Written: {path}")
+    os.replace(tmp, path)
+    os.chmod(path, 0o600)
+    print(f"  Written: {path} (mode 600)")
 
 
 def setup_claude() -> None:

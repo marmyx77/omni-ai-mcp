@@ -21,6 +21,7 @@ from ...tools.registry import tool
 from ...services import client, types, is_available, get_error
 from ...services.model_registry import model_registry
 from ...services import interactions as ix
+from ...core.security import safe_input_path, safe_output_path, default_output_path
 
 QUERY_TASKS = {
     "search_query": "search result",
@@ -125,10 +126,9 @@ def embed(
         file_parts = []
         images = 0
         for path in files:
+            path = safe_input_path(path, allowed_extensions=set(ix.MIME_BY_EXT))
             mime = ix.mime_for(path)
             images += mime.startswith("image/")
-            if not os.path.isfile(path):
-                raise FileNotFoundError(path)
             with open(path, "rb") as fh:
                 file_parts.append(types.Part.from_bytes(data=fh.read(), mime_type=mime))
         if images > MAX_IMAGES:
@@ -148,8 +148,7 @@ def embed(
         }
         total = sum(len(v) for v in vectors)
         if output_path or total > INLINE_VALUE_LIMIT:
-            path = output_path or f"/tmp/gemini_embeddings_{int(time.time())}.json"
-            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            path = safe_output_path(output_path, {".json"}) if output_path else default_output_path("gemini_embeddings", ".json")
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh)
             return (f"{len(vectors)} embedding(s) × {payload['dimensions']} dims with {model_id}\n"
