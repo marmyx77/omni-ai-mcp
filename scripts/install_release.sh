@@ -9,6 +9,7 @@
 # What it does:
 #   1. resolves the tag (default: highest vX.Y.Z on GitHub)
 #   2. creates/reuses a venv in $OMNI_INSTALL_DIR (default ~/.claude-mcp-servers/omni-ai-mcp)
+#      with a Python >= 3.10 (OMNI_PYTHON, newest python3.x on PATH, or one installed by uv)
 #   3. pip-installs the package FROM GITHUB at that tag (no local checkout, no editable)
 #   4. writes mcpServers.omni-ai-mcp in ~/.claude.json: <venv>/bin/python3 -m app.server,
 #      keeping the env block already there (API keys) — backup taken first
@@ -20,8 +21,21 @@ set -euo pipefail
 REPO="${OMNI_REPO:-https://github.com/marmyx77/omni-ai-mcp}"
 INSTALL_DIR="${OMNI_INSTALL_DIR:-$HOME/.claude-mcp-servers/omni-ai-mcp}"
 VENV="$INSTALL_DIR/venv"
-PYTHON="${OMNI_PYTHON:-python3}"
 CLAUDE_JSON="$HOME/.claude.json"
+
+# Python >= 3.10: OMNI_PYTHON, else the newest python3.x on PATH, else uv-managed
+py_ok() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; }
+pick_python() {
+  if [ -n "${OMNI_PYTHON:-}" ]; then echo "$OMNI_PYTHON"; return; fi
+  for candidate in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && py_ok "$candidate"; then echo "$candidate"; return; fi
+  done
+  if command -v uv >/dev/null 2>&1; then
+    uv python install 3.12 >/dev/null 2>&1 || true
+    uv python find '>=3.10' 2>/dev/null && return
+  fi
+  echo ""
+}
 
 latest_tag() {
   git ls-remote --tags --refs "$REPO" 2>/dev/null \
@@ -49,7 +63,13 @@ echo "omni-ai-mcp: installing $TAG from $REPO"
 echo "  before: $(installed_version)"
 
 mkdir -p "$INSTALL_DIR"
+if [ -x "$VENV/bin/python3" ] && ! py_ok "$VENV/bin/python3"; then
+  echo "  existing venv has Python < 3.10: recreating it"
+  rm -rf "$VENV"
+fi
 if [ ! -x "$VENV/bin/python3" ]; then
+  PYTHON="$(pick_python)"
+  [ -n "$PYTHON" ] && py_ok "$PYTHON" || { echo "Python 3.10+ not found (install it, or install uv: https://docs.astral.sh/uv/)" >&2; exit 1; }
   "$PYTHON" -m venv "$VENV"
   echo "  venv created with $("$VENV/bin/python3" --version)"
 fi

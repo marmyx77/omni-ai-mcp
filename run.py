@@ -9,9 +9,9 @@ Usage:
     python -m app.server
 
 Requirements:
-    - Python 3.9+
+    - Python 3.10+
     - GEMINI_API_KEY environment variable
-    - mcp[cli] package (pip install 'mcp[cli]')
+    - the package and its dependencies (pip install -e . or pip install omni-ai-mcp)
 """
 
 import sys

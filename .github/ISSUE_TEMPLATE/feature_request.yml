@@ -1,0 +1,23 @@
+name: Feature request
+description: A new tool, model, option or improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: The task or workflow, not only the solution. Link the Google or OpenRouter docs if it is about a new model or API.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: Tool name, arguments, output. Example calls help.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Checks
+      options:
+        - label: I checked the README and CHANGELOG, and this is not already supported
+        - label: I can help with a pull request

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/marmyx77/omni-ai-mcp/security/advisories/new
+    about: Report privately, never in a public issue.
+  - name: Gemini API status, quotas and pricing
+    url: https://ai.google.dev/gemini-api/docs
+    about: Questions about Google's models or your quota are best answered by Google's documentation.

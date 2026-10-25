@@ -206,3 +206,17 @@ class TestImageOptions:
 
     def test_more_than_14_references_rejected(self):
         assert "at most 14" in IMAGE.generate_image("x", input_images=["a.png"] * 15)
+
+
+class TestRuntimeDefaults:
+    def test_conversation_db_follows_gemini_log_dir(self):
+        from app.services import persistence
+        from pathlib import Path
+        assert persistence.DB_DIR == Path(config.log_dir).expanduser()
+        assert persistence.DB_PATH.name == "conversations.db"
+
+    def test_startup_log_counts_registered_tools(self):
+        import inspect
+        import app.server as server
+        src = inspect.getsource(server.main)
+        assert "len(mcp._tool_manager._tools)" in src and "Tools available: 20" not in src

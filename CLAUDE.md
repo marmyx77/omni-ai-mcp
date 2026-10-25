@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.8.0
+**Version:** 4.8.1
 **SDK:** google-genai >= 2.33.0 (Interactions API 'steps' schema, Voices API, video/speech/agent request schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.8.0)
+## Architecture (v4.8.1)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -160,7 +160,8 @@ echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | GEMINI_API_KEY=your_key 
 
 ### Install to Claude Code
 ```bash
-./setup.sh YOUR_API_KEY
+claude mcp add omni-ai-mcp --scope user -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp   # users: from PyPI
+./setup.sh KEY [OPENROUTER_KEY]   # contributors: venv in ~/.claude-mcp-servers, editable install of this checkout
 ```
 
 ### Execution nodes (a home server, a second workstation): install a GitHub tag, never a checkout
@@ -196,7 +197,7 @@ python3 -m pytest tests/unit/ -v
 
 ## Code Style
 
-- **Python 3.9+** required (FastMCP SDK requirement)
+- **Python 3.10+** required (google-genai >= 2.0); CI runs 3.11 and 3.12
 - Type hints for function signatures
 - Docstrings for public functions (Google style)
 - Keep tool implementations self-contained
@@ -461,13 +462,13 @@ from app.services import client
 
 # Create interaction with model (not agent!)
 interaction = client.interactions.create(
-    model="gemini-3.1-pro-preview",  # Use model for sync queries
+    model=MODELS["pro"],                      # resolved by the registry
     input=prompt,
     previous_interaction_id=continuation_id  # For follow-ups
 )
 
-# Response is immediate (no polling needed)
-response_text = interaction.outputs[-1].text
+# Synchronous for models; text comes from the 'steps' schema
+response_text = extract_interaction_text(interaction)   # joins every model_output step
 thread_id = f"int_{interaction.id}"  # Cloud IDs prefixed with int_
 ```
 
@@ -576,7 +577,7 @@ tests/
 │   ├── test_ask_gemini_thinking.py # thinking_level vs thinking_budget on the resolved model
 │   ├── test_deep_research_errors.py # error wording, per-call agent resolution, steps extraction
 │   ├── test_deep_research_resume.py # retrieve / resume / follow-up modes with a fake client
-│   ├── test_version_consistency.py # every stated version == pyproject.toml (badge, plugin.json, manifest, CLAUDE.md)
+│   ├── test_version_consistency.py # every stated version == pyproject.toml (plugin.json, manifest, app, CLAUDE.md)
 │   ├── test_transcribe_audio.py   # transcription config, response → segments, formatting, registry category
 │   ├── test_interactions_helpers.py # Interactions helpers: file inputs, polling, outputs, media saving
 │   ├── test_media_tools_v48.py    # Omni video, TTS 3.8, Lyria, video analysis, voices (requests validated against the SDK schema)
@@ -628,7 +629,7 @@ Before ending any working session:
 - [ ] Does the uncommitted work touch code, tools, or plugin files? → release
 - [ ] Does it touch only docs/config? → commit + push without tag
 
-Every release must keep these version fields in sync (`scripts/bump_version.sh` does it; `tests/unit/test_version_consistency.py` fails CI if any drifts):
+Every release must keep these version fields in sync (`scripts/bump_version.sh` does it; `tests/unit/test_version_consistency.py` fails CI if any drifts). The README uses dynamic PyPI badges, so it carries no version to bump:
 
 | File | Field |
 |------|-------|
@@ -637,24 +638,26 @@ Every release must keep these version fields in sync (`scripts/bump_version.sh` 
 | `app/core/config.py` | `version: str = "X.Y.Z"` |
 | `manifest.json` | `"version": "X.Y.Z"` — DXT plugin for Claude Desktop |
 | `.claude-plugin/plugin.json` | `"version": "X.Y.Z"` — Claude Code plugin manifest |
-| `README.md` | version badge |
 | `CLAUDE.md` | `**Version:**` header + `## Architecture (vX.Y.Z)` heading |
 
 ### Step-by-step release
 
+`main` is protected (PR + `test (3.11)`, `test (3.12)`, `docs-gate`). Never `git add -A` here: other sessions sometimes leave working notes in the checkout. Push the branch and wait for green checks **before** tagging, because the tag alone triggers the PyPI publish.
+
 ```bash
-# 1. Bump all 4 version files at once
-bash scripts/bump_version.sh 4.1.0
-
-# 2. Add release notes (required)
-# Edit CHANGELOG.md — add a new ## [4.1.0] section at the top
-
-# 3. Commit and tag
-git add -A
-git commit -m "chore: bump version to 4.1.0"
-git tag v4.1.0
-git push origin main v4.1.0
+git checkout -b release/vX.Y.Z
+bash scripts/bump_version.sh X.Y.Z                 # every version field (see table above)
+# add a ## [X.Y.Z] section at the top of CHANGELOG.md
+python3 -m pytest tests/ -q && node virgilio/bin/cli.mjs check --config virgilio.config.json
+git add <files by name> && git commit -m "release: vX.Y.Z — …"
+git push -u origin release/vX.Y.Z && gh pr create --base main
+gh pr checks --watch                               # all green, then:
+git tag vX.Y.Z && git push origin vX.Y.Z           # PyPI + .dxt + plugin zip
+gh pr merge --merge --delete-branch
+GEMINI_API_KEY=… python3 scripts/smoke_live.py     # live check of the released code
 ```
+
+After a release: `git pull` on the dev Mac (editable install), `install_release.sh vX.Y.Z` on execution nodes, restart Claude Code sessions.
 
 ### What happens automatically (GitHub Actions)
 
@@ -686,20 +689,17 @@ bash scripts/build_dxt.sh
 
 ## Docker Deployment
 
-```bash
-# Build and run
-docker-compose up -d
+stdio MCP server: the client starts one container per session (`docker run -i --rm …`, see README → Docker).
 
-# With monitoring
-docker-compose --profile monitoring up -d
+```bash
+docker build -t omni-ai-mcp .
+docker compose build                       # same image, with the limits below
 ```
 
-### docker-compose.yml Features
-- Non-root user execution
-- Health check every 30 seconds
-- Read-only filesystem with tmpfs
-- Resource limits (2 CPU, 2GB RAM)
-- Log rotation (10MB max, 3 files)
+- Package installed with `pip install .`, entrypoint `omni-ai-mcp`, non-root user `omni`
+- Read-only root filesystem works: writable `/workspace` (sandbox root), `/logs` (log + SQLite, via `GEMINI_LOG_DIR`), `/tmp` (tmpfs, default media output)
+- Verified 2026-10-25: read-only container answers `initialize` and lists 28 tools
+- Before v4.8.1 the Dockerfile copied and ran a `server.py` removed in v3.1, and the SQLite DB ignored `GEMINI_LOG_DIR`: the image could not start
 
 ## Model Resolution (v4.6.0, multi-scheme + probing since v4.8.0)
 
@@ -781,7 +781,12 @@ The flagship (`text_pro`) pattern accepts `-pro` and Gemini 4 codenames (`gemini
 
 ## Roadmap
 
-### v4.8.0 (Current) - Google models Jun-Oct 2026
+### v4.8.1 (Current) - GitHub/PyPI polish
+- ✅ README, CONTRIBUTING, SECURITY rewritten; Code of Conduct, issue forms, PR template; PyPI metadata and absolute links
+- ✅ Fixed: Dockerfile (ran a removed `server.py`), SQLite DB ignoring `GEMINI_LOG_DIR`, `setup.sh` installing incompatible deps
+- ✅ `install_release.sh` and `setup.sh` pick a Python ≥ 3.10 (uv fallback); `/gemini-video`, `/gemini-music`, `/gemini-watch`
+
+### v4.8.0 (Released) - Google models Jun-Oct 2026
 - ✅ `pro` → Gemini 4 Argon (flagship pattern accepts Gemini 4 codenames); registry: multi-scheme patterns, probing of unlisted models, 17 categories
 - ✅ Video rewritten on Gemini Omni Flash (Veo 3.1 Preview shut down 2026-10-22): generate, edit, extend, interpolate, references, 360p-4k, duration, retrieve after timeout
 - ✅ Nano Banana 2.1 + 2 Lite; panoramic ratios, 512-4K on every model, 14 references, search grounding, thinking levels

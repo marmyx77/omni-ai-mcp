@@ -24,7 +24,7 @@ CODE_REVIEW_SCHEMA = {
         "model": {
             "type": "string",
             "enum": ["pro", "flash"],
-            "description": "pro (default): Gemini 3 Pro - thorough analysis. flash: faster but less detailed",
+            "description": "pro (default): newest Gemini flagship - thorough analysis. flash: faster but less detailed",
             "default": "pro"
         }
     },
@@ -34,7 +34,7 @@ CODE_REVIEW_SCHEMA = {
 
 @tool(
     name="gemini_code_review",
-    description="Have Gemini review code with specific focus. Uses Gemini 3 Pro for best reasoning.",
+    description="Have Gemini review code with specific focus. Uses the newest Gemini flagship for best reasoning.",
     input_schema=CODE_REVIEW_SCHEMA,
     tags=["text", "code"]
 )

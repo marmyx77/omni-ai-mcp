@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.1] - 2026-10-25
+
+Repository and documentation overhaul for GitHub and PyPI, plus three installation bugs it uncovered.
+
+### Fixed
+- **Docker image could not start**: the Dockerfile copied and ran a `server.py` removed in v3.1. It now installs the package (`pip install .`), runs `omni-ai-mcp` as a non-root user and works with a read-only root filesystem. Verified: a read-only container answers `initialize` and lists 28 tools. `docker-compose.yml` rewritten for a stdio server (no restart loop, no log-viewer sidecar).
+- **Conversation database ignored `GEMINI_LOG_DIR`** and always wrote to `~/.omni-ai-mcp`, contrary to the docs (and fatal in read-only containers). It now lives in `GEMINI_LOG_DIR`, whose default is unchanged.
+- **`setup.sh` installed incompatible dependencies** (`google-genai>=1.55`, unpinned `mcp`) and copied `app/` by hand. It now picks a Python ≥ 3.10, creates `~/.claude-mcp-servers/omni-ai-mcp/venv`, installs the checkout in editable mode and registers the server in user scope.
+- The startup log said "Tools available: 20": it now counts the registered tools.
+
+### Changed
+- `scripts/install_release.sh` picks a Python ≥ 3.10 by itself (newest `python3.x` on PATH, or one installed by uv) and recreates a venv built on an older Python.
+- README rewritten: verified install paths (`uvx` one-liner first), the 28 tools by domain, examples matching the real signatures, models and pinning, full configuration, Docker, troubleshooting (spending cap, EEA video limits), dated cost snapshot. Dynamic PyPI/CI badges replace the static version badge; links are absolute so they work on PyPI. Release notes now live only in this file.
+- CONTRIBUTING and SECURITY rewritten for 4.8 (they described v3.0); SECURITY lists only protections verified in the code and points to GitHub private vulnerability reporting.
+- Slash commands: new `/gemini-video`, `/gemini-music`, `/gemini-watch`; image commands describe Nano Banana; `/ask-model` and the `model-orchestrator` agent use model IDs that exist on OpenRouter today; `/setup` registers in user scope.
+- `pyproject.toml`: description, keywords and project URLs (Repository, Issues, Changelog) for PyPI. Setup wizard prints the real version.
+- Tool descriptions read by MCP clients no longer name "Gemini 3 Pro" (review, brainstorm, challenge, web search): they say "newest Gemini flagship", which is what the registry resolves.
+
+### Added
+- `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), issue forms (bug, feature) with contact links, pull request template.
+
 ## [4.8.0] - 2026-10-25
 
 Everything Google shipped in the Gemini API from June to October 2026, except the real-time Live API models. Audit sources: the live model list, the official changelog and model cards, and the SDK request schema. **Verified live on 2026-10-25** with `scripts/smoke_live.py`: 19/19 checks passed (Argon, 3.8 Flash, Gemma 4, search, Nano Banana 2.1 at 4:1 → 2064×512, Nano Banana 2 Lite, vision, Robotics ER, TTS 3.8 and Lite, transcription, Voice Library, YouTube analysis, embeddings, Omni video 3 s 640×360 with stereo audio, Lyria clip, Deep Research, Antigravity).

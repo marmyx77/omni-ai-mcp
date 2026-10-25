@@ -4,15 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "omni-ai-mcp"
-version = "4.8.0"
-description = "Multi-AI MCP bridge: Gemini + OpenRouter (400+ models) — text, code, image, video, TTS, RAG, Deep Research"
+version = "4.8.1"
+description = "MCP server bridging Claude with Google Gemini (video, music, voice, images, Deep Research, agents, 1M context) and 400+ OpenRouter models"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
     {name = "Marco Armellino"}
 ]
-keywords = ["mcp", "gemini", "ai", "claude", "anthropic", "multimodal", "rag"]
+keywords = ["mcp", "model-context-protocol", "gemini", "google-genai", "claude", "claude-code", "openrouter",
+            "multimodal", "video-generation", "text-to-speech", "music-generation", "deep-research", "rag", "embeddings"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -34,6 +35,13 @@ dependencies = [
     "defusedxml>=0.7.1",
     "filelock>=3.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/marmyx77/omni-ai-mcp"
+Repository = "https://github.com/marmyx77/omni-ai-mcp"
+Issues = "https://github.com/marmyx77/omni-ai-mcp/issues"
+Changelog = "https://github.com/marmyx77/omni-ai-mcp/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/marmyx77/omni-ai-mcp#readme"
 
 [project.optional-dependencies]
 dev = [

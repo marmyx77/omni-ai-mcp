@@ -25,22 +25,22 @@ If it IS already set, use the existing value from the environment.
 **Step 3 — Register the MCP server with the key**
 Run this command with the key the user provided (replace KEY with the actual key):
 ```
-claude mcp add omni-ai-mcp -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp
+claude mcp add omni-ai-mcp --scope user -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp
 ```
 If the command fails because omni-ai-mcp already exists, run:
 ```
-claude mcp remove omni-ai-mcp
-claude mcp add omni-ai-mcp -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp
+claude mcp remove omni-ai-mcp -s user
+claude mcp add omni-ai-mcp --scope user -e GEMINI_API_KEY=KEY -- uvx omni-ai-mcp
 ```
 
 **Step 4 — Ask for OpenRouter key (optional)**
-Ask: "Do you have an **OpenRouter API key**? (optional — enables 400+ models like GPT-4o, Llama, Mistral). Paste it here or type **skip**."
+Ask: "Do you have an **OpenRouter API key**? (optional: enables 400+ models such as GPT, Claude, Llama, Grok, DeepSeek). Paste it here or type **skip**."
 
 If they provide a key (not "skip"), run:
 ```
-claude mcp remove omni-ai-mcp
-claude mcp add omni-ai-mcp -e GEMINI_API_KEY=GEMINI_KEY -e OPENROUTER_API_KEY=OR_KEY -- uvx omni-ai-mcp
+claude mcp remove omni-ai-mcp -s user
+claude mcp add omni-ai-mcp --scope user -e GEMINI_API_KEY=GEMINI_KEY -e OPENROUTER_API_KEY=OR_KEY -- uvx omni-ai-mcp
 ```
 
 **Step 5 — Done**
-Tell the user: "✅ Setup complete! **Restart Claude Code** to activate the tools. After restart, you'll have access to 20 AI tools: /gemini, /gemini-research, /gemini-review, /cowork and more."
+Tell the user: "✅ Setup complete! **Restart Claude Code** to activate the tools. After restart, you'll have access to 28 AI tools and commands such as /gemini, /gemini-research, /gemini-video, /gemini-music, /cowork and more."

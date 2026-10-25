@@ -1,17 +1,14 @@
 """
-omni-ai-mcp v4.0.0
-FastMCP-based MCP server for Google Gemini AI integration.
+omni-ai-mcp — FastMCP server bridging Claude with Google Gemini and 400+ OpenRouter models.
 
-This server provides access to Gemini's unique capabilities:
-- 1M+ token context window for codebase analysis
-- Native video/audio processing
-- Google Search grounding
-- Image generation (Imagen)
-- Video generation (Veo)
-- Multi-speaker text-to-speech
-- RAG with File Search
-- Deep Research Agent (Interactions API)
-- Conversation management with local/cloud storage
+Gemini capabilities exposed as MCP tools (models auto-detected at runtime):
+- Text and reasoning with the newest flagship (Gemini 4 Argon) and Flash models, 1M context
+- Google Search grounding, Deep Research / Deep Research Max agents
+- Antigravity managed agent (code, files, web in a Google-hosted sandbox)
+- Images (Nano Banana), video generation/editing (Gemini Omni Flash), music (Lyria)
+- Text-to-speech (Gemini 3.8 TTS, Voice Library, voice design/replication), transcription
+- Image and video understanding (static or agentic), Robotics ER spatial reasoning
+- Multimodal embeddings, RAG with File Search, local/cloud conversation memory
 
 Usage:
     python -m app.server
@@ -864,7 +861,7 @@ def gemini_code_review(
 ) -> str:
     """
     Have Gemini review code with specific focus.
-    Uses Gemini 3 Pro for best reasoning.
+    Uses the newest Gemini flagship (Gemini 4 Argon today) for best reasoning.
 
     Args:
         code: Code to review (supports @file references)
@@ -893,7 +890,7 @@ def gemini_brainstorm(
 ) -> str:
     """
     Advanced brainstorming with multiple methodologies.
-    Uses Gemini 3 Pro for creative reasoning with structured frameworks.
+    Uses the newest Gemini flagship for creative reasoning with structured frameworks.
 
     Args:
         topic: Topic or challenge to brainstorm
@@ -1014,7 +1011,7 @@ def main():
         sys.exit(1)
 
     structured_logger.info(f"Starting omni-ai-mcp v{config.version}")
-    structured_logger.info(f"Tools available: 20 (including model registry and multi-provider)")
+    structured_logger.info(f"Tools available: {len(mcp._tool_manager._tools)}")
 
     # Run the FastMCP server
     mcp.run()
