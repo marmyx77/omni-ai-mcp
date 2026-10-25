@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version 4.7.0](https://img.shields.io/badge/version-4.7.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
+[![Version 4.8.0](https://img.shields.io/badge/version-4.8.0-green.svg)](https://github.com/marmyx77/omni-ai-mcp/releases)
 [![PyPI](https://img.shields.io/badge/PyPI-omni--ai--mcp-blue.svg)](https://pypi.org/project/omni-ai-mcp/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
@@ -17,9 +17,12 @@ Claude is exceptional at reasoning and code generation. But sometimes you need m
 - A **second opinion** from a different AI model (GPT-4o, Llama, Mistral, Claude via OpenRouter)
 - **Real-time web search** with Google grounding and source citations
 - **Autonomous deep research** that runs for minutes and produces structured reports from 40+ sources
-- **Video generation** with Veo 3.1 — the only MCP server with native audio video generation
-- **Image generation** with Gemini 3 Pro Image (Nano Banana Pro) up to 4K resolution
-- **Text-to-speech** with 30 natural voices and multi-speaker support
+- **Video generation and editing** with Gemini Omni Flash: text/image to video, interpolation, conversational edits and extensions, native audio, up to 4K
+- **Image generation** with the Nano Banana family (Pro, 2.1, 2 Lite): accurate infographics, panoramic formats, up to 4K
+- **Music generation** with Lyria: full songs with vocals and lyrics, or 30-second clips
+- **Text-to-speech** with Gemini 3.8 TTS: hundreds of library voices, custom designed and replicated voices, two-speaker dialogue
+- **Speech to text and video understanding**: diarized transcripts, YouTube and long-video analysis
+- **Multimodal embeddings** and a **managed coding agent** (Antigravity) running in Google's sandbox
 - **RAG** for querying your own documents with citations
 - **Large codebase analysis** with Gemini's 1M token context window
 - **Multi-turn conversations** with cloud persistence (55-day retention, resume from any device)
@@ -28,6 +31,18 @@ Claude is exceptional at reasoning and code generation. But sometimes you need m
 omni-ai-mcp bridges Claude Code with Google Gemini and OpenRouter, enabling Claude to orchestrate any AI model as a tool.
 
 ---
+
+## What's New in v4.8.0
+
+Everything Google shipped in the Gemini API between June and October 2026, except the real-time Live API models (WebSocket streaming does not fit an MCP request/response tool). Verified live on 2026-10-25.
+
+- **`pro` is now Gemini 4 Argon**, Google's new flagship (1M context, thinking low/medium/high). The registry recognises Gemini 4 codenames, so its successors are picked up automatically.
+- **Video moved to Gemini Omni Flash.** Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22. `gemini_generate_video` now does text/image to video, first+last frame interpolation, subject references, conversational edits and extensions of a generated clip, 360p to 4K, 3-10 s with native audio.
+- **Nano Banana 2.1** for fast images: panoramic 1:4, 4:1, 1:8, 8:1, 1K to 4K, up to 14 reference images, Google Search grounding, thinking levels; new `lite` model.
+- **Gemini 3.8 TTS** (Flash and Flash-Lite): any of hundreds of Voice Library voices, per-turn style direction, plus voice design and voice replication.
+- **New tools**: `gemini_analyze_video` (files or YouTube, static or agentic processing), `gemini_generate_music` (Lyria 3.5 and Lyria Clip), `gemini_list_voices`, `gemini_design_voice`, `gemini_replicate_voice`, `gemini_embed` (Gemini Embedding 2, multimodal), `gemini_agent_task` (Antigravity managed agent).
+- **Also**: Deep Research Max (`depth="max"`), Robotics ER spatial reasoning (`model="robotics"` in image/video analysis), Gemma 4 through `ask_model`, Flash-Lite in image analysis.
+- **API hygiene**: `temperature`/`top_p`/`top_k` are no longer sent to Gemini 3.6+ (deprecated upstream, 400 announced for future models); the output budget is 64K by default (`GEMINI_MAX_OUTPUT_TOKENS`) because thinking and answer share it; the Pro→Flash quota fallback now covers Argon and skips spending-cap errors.
 
 ## What's New in v4.7.0
 
@@ -72,7 +87,7 @@ export OPENROUTER_DEFAULT_MODEL=openai/gpt-4o
 
 1. Explicit Gemini model + `GEMINI_API_KEY` -> **always** Gemini native API (fastest, cheapest)
 2. Gemini model + no Gemini key + `OPENROUTER_API_KEY` -> OpenRouter `google/` prefix (automatic fallback)
-3. `veo-*`, `imagen-*`, `deep-research-*` models -> Gemini native only (no OpenRouter equivalent)
+3. `lyria-*`, `deep-research-*` and other media/agent models -> Gemini native only (no OpenRouter equivalent); `gemma-*` -> Gemini native, mirrored on OpenRouter
 4. OpenRouter model (`openai/`, `meta-llama/`, etc.) -> OpenRouter (requires `OPENROUTER_API_KEY`)
 
 ### PyPI Distribution
@@ -89,13 +104,13 @@ Install with one click — no Python setup required:
 1. Download `omni-ai-mcp-vX.Y.Z.dxt` from [GitHub Releases](https://github.com/marmyx77/omni-ai-mcp/releases)
 2. Double-click the file (macOS/Windows) or drag it into Claude Desktop
 3. Enter your Gemini API key when prompted (OpenRouter key is optional)
-4. Done — all 21 tools are immediately available in Claude Desktop
+4. Done — all 28 tools are immediately available in Claude Desktop
 
 The `.dxt` bundle includes all Python dependencies — users don't need to install anything else.
 
 ---
 
-## 20 Tools
+## 28 Tools
 
 ### Multi-Provider
 | Tool | Description |
@@ -106,22 +121,24 @@ The `.dxt` bundle includes all Python dependencies — users don't need to insta
 ### Text & Reasoning
 | Tool | Description | Model |
 |------|-------------|-------|
-| `ask_gemini` | Text generation with thinking mode, multi-turn, dual storage (local/cloud) | newest Gemini Pro |
-| `gemini_code_review` | Security, performance, and quality analysis | newest Gemini Pro |
-| `gemini_brainstorm` | Creative ideation with 6 methodologies (SCAMPER, TRIZ, etc.) | newest Gemini Pro |
-| `gemini_challenge` | Devil's advocate — find flaws in ideas, plans, and code | newest Gemini Pro |
+| `ask_gemini` | Text generation with thinking mode, multi-turn, dual storage (local/cloud) | newest flagship (Gemini 4 Argon) |
+| `gemini_code_review` | Security, performance, and quality analysis | newest flagship |
+| `gemini_brainstorm` | Creative ideation with 6 methodologies (SCAMPER, TRIZ, etc.) | newest flagship |
+| `gemini_challenge` | Devil's advocate — find flaws in ideas, plans, and code | newest flagship |
+| `gemini_embed` | Multimodal embeddings (text, images, audio, video, PDF) for search and clustering | Gemini Embedding 2 |
 
 ### Code
 | Tool | Description | Model |
 |------|-------------|-------|
-| `gemini_analyze_codebase` | Whole-codebase analysis up to 1M tokens / 5MB | newest Gemini Pro |
-| `gemini_generate_code` | Structured code generation with dry-run preview and XML output | newest Gemini Pro |
+| `gemini_analyze_codebase` | Whole-codebase analysis up to 1M tokens / 5MB | newest flagship |
+| `gemini_generate_code` | Structured code generation with dry-run preview and XML output | newest flagship |
+| `gemini_agent_task` | Delegate a multi-step task to the Antigravity agent in Google's Linux sandbox (code, files, web) | Antigravity Agent |
 
 ### Research & Web
 | Tool | Description | Model |
 |------|-------------|-------|
 | `gemini_web_search` | Real-time search with Google grounding & citations | newest Gemini Flash |
-| `gemini_deep_research` | Autonomous 5-60 min research, 40+ sources, structured report | Deep Research Agent |
+| `gemini_deep_research` | Autonomous 5-60 min research, 40+ sources, structured report (`depth="max"` for Deep Research Max) | Deep Research Agent |
 
 ### RAG
 | Tool | Description |
@@ -134,10 +151,15 @@ The `.dxt` bundle includes all Python dependencies — users don't need to insta
 ### Media (Gemini exclusive)
 | Tool | Description | Model |
 |------|-------------|-------|
-| `gemini_analyze_image` | Vision: describe, OCR, Q&A on images | newest Gemini Flash |
-| `gemini_generate_image` | Imagen — up to 4K resolution | newest Gemini Pro Image |
-| `gemini_generate_video` | Veo — 4-8s with native audio (dialogue, effects, ambient) | newest Veo |
-| `gemini_text_to_speech` | 30 natural voices, multi-speaker dialogue | newest Gemini Flash TTS |
+| `gemini_analyze_image` | Vision: describe, OCR, Q&A; spatial reasoning (points, boxes) with `model="robotics"` | newest Gemini Flash |
+| `gemini_analyze_video` | Video understanding from a file or YouTube; agentic processing for long videos | newest Gemini Flash |
+| `gemini_generate_image` | Nano Banana Pro / 2.1 / 2 Lite: infographics, readable text, panoramic formats, up to 4K, 14 references | newest Nano Banana |
+| `gemini_generate_video` | Omni Flash: generate, edit, extend, interpolate; 3-10 s with native audio, up to 4K | newest Gemini Omni Flash |
+| `gemini_generate_music` | Lyria: full songs with vocals and lyrics, or 30 s clips (MP3) | newest Lyria |
+| `gemini_text_to_speech` | Gemini 3.8 TTS: any library/designed/replicated voice, style direction, two-speaker dialogue | newest Gemini Flash TTS |
+| `gemini_list_voices` | Browse the Voice Library (hundreds of voices) with filters | - |
+| `gemini_design_voice` | Create a custom voice from a description | newest Gemini Flash TTS |
+| `gemini_replicate_voice` | Replicate a consenting speaker's voice (reference + consent audio) | newest Gemini Flash TTS |
 | `gemini_transcribe_audio` | Speech to text: 85+ languages, speaker diarization, word timestamps, custom vocabulary, up to 1 h | newest Gemini Transcribe |
 
 ### Conversation
@@ -200,7 +222,7 @@ It creates `~/.claude-mcp-servers/omni-ai-mcp/venv`, installs `omni-ai-mcp @ git
 ### Manual Install
 
 ```bash
-pip install 'mcp[cli]>=1.0.0,<2' 'google-genai>=2.20.0' pydantic defusedxml filelock
+pip install 'mcp[cli]>=1.0.0,<2' 'google-genai>=2.33.0' pydantic defusedxml filelock
 
 mkdir -p ~/.claude-mcp-servers/omni-ai-mcp
 cp -r app/ run.py pyproject.toml ~/.claude-mcp-servers/omni-ai-mcp/
@@ -298,17 +320,34 @@ Include file contents directly in prompts:
 
 Supported patterns: `@file.py`, `@src/main.py`, `@*.py`, `@src/**/*.ts`, `@.` (directory listing)
 
-### Video Generation
+### Video Generation and Editing
 
 ```
 "Generate a video of ocean waves at sunset, seagulls flying, sound of waves and wind"
 ```
 
-- Duration: 4-8 seconds
-- Resolution: 720p or 1080p (1080p requires 8s)
-- Native audio: dialogue, sound effects, ambient sounds
-- For dialogue: use quotes ("Hello," she said)
-- For sounds: describe explicitly (engine roaring, birds chirping)
+- Model: Gemini Omni Flash (Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22)
+- Duration: 3-10 seconds (`duration`), aspect 16:9 or 9:16, resolution 360p/720p native, 1080p/4K upscaled
+- Native audio: describe dialogue, effects and music in the prompt; timecodes work (`[0-3s] ... [3-6s] ...`)
+- Images: a starting frame, first+last frames (`<FIRST_FRAME> <LAST_FRAME>`) or references (`<IMAGE_REF_0>`)
+- Edit or extend the result conversationally: pass the returned `continuation_id` with a short instruction ("Make it night. Keep everything else the same.")
+- Editing or extending an uploaded clip (≤ 10 s) is not available in the EEA, Switzerland and the UK; edits of generated clips are
+
+### Music Generation
+
+```python
+gemini_generate_music(prompt="Upbeat Italian pop song about summer in Turin, female vocals, about 2 minutes, verse-chorus-verse-chorus-bridge-chorus")
+gemini_generate_music(prompt="Calm lo-fi piano loop, instrumental", model="clip")   # 30 s
+```
+
+Returns an MP3 (44.1 kHz stereo) and the generated lyrics.
+
+### Video Understanding
+
+```python
+gemini_analyze_video(prompt="List the key moments with MM:SS timestamps", youtube_url="https://www.youtube.com/watch?v=...")
+gemini_analyze_video(prompt="When does the speaker mention pricing?", video_path="talk.mp4", processing="agentic")
+```
 
 ### Image Generation
 
@@ -317,8 +356,10 @@ Supported patterns: `@file.py`, `@src/main.py`, `@*.py`, `@src/**/*.ts`, `@.` (d
 cinematic, shot on 35mm lens"
 ```
 
-- Resolution: up to 4K with Pro model
-- Aspect ratios: 1:1, 16:9, 9:16, 3:2, 4:5, and more
+- Models: `pro` (Nano Banana Pro, default), `flash` (Nano Banana 2.1), `lite` (Nano Banana 2 Lite)
+- Resolution: 512, 1K, 2K or 4K (`auto`: 2K on pro, model default elsewhere)
+- Aspect ratios: 1:1, 16:9, 9:16, 3:2, 4:5 and more; panoramic 1:4, 4:1, 1:8, 8:1 on `flash`
+- Up to 14 `input_images` to edit, fuse or keep characters consistent; `google_search=true` grounds facts
 - Use descriptive sentences, not keyword lists
 
 ### Text-to-Speech
@@ -327,7 +368,7 @@ cinematic, shot on 35mm lens"
 "Convert this article to speech using the Charon voice (informative, neutral)"
 ```
 
-30 available voices — Bright: Zephyr, Autonoe / Upbeat: Puck, Laomedeia / Informative: Charon, Rasalgethi / Warm: Sulafat, Vindemiatrix / and 22 more.
+30 featured studio voices (Zephyr, Puck, Charon, Kore, Sulafat...) plus hundreds more in the Voice Library: browse them with `gemini_list_voices(language_codes=["it-IT"])`. Direct the delivery with `style="slow, warm audiobook narration"`. Create your own with `gemini_design_voice` (from a description) or `gemini_replicate_voice` (from a consenting speaker's recording).
 
 Multi-speaker dialogue:
 
@@ -335,7 +376,7 @@ Multi-speaker dialogue:
 gemini_text_to_speech(
     text="Host: Welcome!\nGuest: Thanks for having me!",
     speakers=[
-        {"name": "Host", "voice": "Charon"},
+        {"name": "Host", "voice": "Charon", "style": "warm and welcoming"},
         {"name": "Guest", "voice": "Aoede"}
     ]
 )
@@ -400,7 +441,7 @@ Options: `dry_run=true` to preview without writing, `language`, `style` (product
 Design an optimal database schema for a social media platform at scale"
 ```
 
-Levels: `off` (default), `low` (fast reasoning), `high` (deep analysis)
+Levels: `auto` (default, the model decides), `low`, `medium`, `high`. Gemini 3+ models always reason: `auto` is not zero.
 
 ---
 
@@ -410,11 +451,11 @@ Levels: `off` (default), `low` (fast reasoning), `high` (deep analysis)
 
 | Alias | Category | Best For |
 |-------|----------|----------|
-| `pro` | newest Gemini Pro | Complex reasoning, coding, analysis |
+| `pro` | newest flagship (Gemini 4 Argon today) | Complex reasoning, coding, math, agents |
 | `flash` / `fast` | newest Gemini Flash | Balanced speed/quality |
 | `flash-lite` | newest Gemini Flash-Lite | High-volume, simple tasks |
 
-Aliases resolve at runtime to the newest model of that category your API key exposes (stable preferred over preview at the same version). Run `gemini_list_models` to see the concrete IDs and where each one came from; set `GEMINI_MODEL_*` to pin one.
+Aliases resolve at runtime to the newest model of that category your API key exposes (stable preferred over preview at the same version; newer naming schemes such as Gemini 4 codenames and Nano Banana win over older ones). If Google stops listing a family while still serving it, the registry verifies the known IDs by name. Run `gemini_list_models` to see the concrete IDs and where each one came from; set `GEMINI_MODEL_*` to pin one.
 
 ### OpenRouter Models (via `ask_model`)
 
@@ -424,7 +465,7 @@ Aliases resolve at runtime to the newest model of that category your API key exp
 | Meta | `meta-llama/llama-3.3-70b-instruct` | Open source, fast |
 | Anthropic | `anthropic/claude-3.5-sonnet` | Claude via OpenRouter |
 | Mistral | `mistralai/mistral-large-2512` | Strong on EU languages |
-| Google | `google/gemini-3.1-pro-preview` | Gemini via OpenRouter (fallback) |
+| Google | `google/gemini-4-argon` | Gemini and Gemma via OpenRouter (fallback) |
 | 340+ more | — | `gemini_list_models()` to browse |
 
 ---
@@ -439,11 +480,16 @@ All settings via environment variables:
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables `ask_model` for 400+ models) |
 | `GEMINI_MODEL_AUTODETECT` | `true` | Pick the newest model per category from the live API list; `false` = static fallbacks only |
 | `GEMINI_MODEL_PRO` / `_FLASH` / `_FLASH_LITE` | auto-detected | Pin a text model (an explicit value always wins over auto-detect) |
-| `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` | auto-detected | Pin an image model |
-| `GEMINI_MODEL_VEO31` / `_VEO31_FAST` / `_VEO31_LITE` | auto-detected | Pin a video model |
-| `GEMINI_MODEL_TTS_FLASH` / `_TTS_PRO` | auto-detected | Pin a TTS model |
+| `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` / `_IMAGE_LITE` | auto-detected | Pin an image model |
+| `GEMINI_MODEL_VIDEO` | auto-detected | Pin the video model (Gemini Omni Flash) |
+| `GEMINI_MODEL_TTS_FLASH` / `_TTS_LITE` | auto-detected | Pin a TTS model |
 | `GEMINI_MODEL_TRANSCRIBE` | auto-detected | Pin the speech-to-text model |
-| `GEMINI_MODEL_DEEP_RESEARCH` | auto-detected | Pin the research agent |
+| `GEMINI_MODEL_MUSIC` / `_MUSIC_CLIP` | auto-detected | Pin a Lyria model |
+| `GEMINI_MODEL_DEEP_RESEARCH` / `_DEEP_RESEARCH_MAX` | auto-detected | Pin a research agent |
+| `GEMINI_MODEL_AGENT` | auto-detected | Pin the Antigravity agent version |
+| `GEMINI_MODEL_EMBEDDING` | auto-detected | Pin the embedding model |
+| `GEMINI_MODEL_ROBOTICS` | auto-detected | Pin the Robotics ER model |
+| `GEMINI_MAX_OUTPUT_TOKENS` | `65536` | Output budget per request (thinking + answer share it on Gemini 3+) |
 | `OPENROUTER_DEFAULT_MODEL` | `openai/gpt-4o` | Default OpenRouter model |
 | `OPENROUTER_TIMEOUT` | `120` | OpenRouter generation timeout in seconds (raise for search models like `perplexity/sonar-deep-research`) |
 | `GEMINI_SANDBOX_ROOT` | cwd | Root directory for file access |
@@ -505,10 +551,11 @@ User -> Claude Code
        omni-ai-mcp tools
        +-- ask_model("openai/gpt-4o")       -> OpenRouter -> GPT-4o
        +-- ask_model("meta-llama/...")       -> OpenRouter -> Llama 3
-       +-- ask_model("gemini-3.1-pro...")    -> Gemini API (native)
-       +-- ask_gemini(...)                   -> Gemini API -> Gemini Pro
-       +-- gemini_deep_research(...)         -> Gemini API -> Deep Research Agent
-       +-- gemini_generate_video(...)        -> Gemini API -> Veo 3.1
+       +-- ask_model("gemini-4-argon")       -> Gemini API (native)
+       +-- ask_gemini(...)                   -> Gemini API -> newest flagship
+       +-- gemini_deep_research(...)         -> Interactions API -> Deep Research Agent
+       +-- gemini_agent_task(...)            -> Interactions API -> Antigravity Agent (Google sandbox)
+       +-- gemini_generate_video(...)        -> Interactions API -> Gemini Omni Flash
 ```
 
 This is different from **provider replacement** tools like [claude-code-router](https://github.com/musistudio/claude-code-router) which replace Claude's backend entirely. omni-ai-mcp keeps Claude in control while giving it access to every AI model as a tool.
@@ -520,18 +567,19 @@ This is different from **provider replacement** tools like [claude-code-router](
 ```
 omni-ai-mcp/
 +-- app/
-|   +-- server.py              # FastMCP -- 20 @mcp.tool() registrations
+|   +-- server.py              # FastMCP -- 28 @mcp.tool() registrations
 |   +-- core/                  # Config, structured logging, security
 |   +-- services/
 |   |   +-- gemini.py          # Gemini client + generate_with_fallback()
-|   |   +-- model_registry.py  # Dynamic model discovery (API + cache)
+|   |   +-- model_registry.py  # Dynamic model discovery (API + cache, multi-scheme, probing)
+|   |   +-- interactions.py    # Interactions API helpers (files, polling, outputs, media)
 |   |   +-- openrouter.py      # OpenRouter client (OpenAI-compatible)
 |   |   +-- persistence.py     # SQLite conversation storage + index
 |   +-- tools/                 # Tool implementations by domain
-|   |   +-- text/              # ask_gemini, ask_model, models, brainstorm, etc.
+|   |   +-- text/              # ask_gemini, ask_model, models, embed, brainstorm, etc.
 |   |   +-- code/              # analyze_codebase, generate_code
-|   |   +-- media/             # image, video, TTS
-|   |   +-- web/               # web_search, deep_research
+|   |   +-- media/             # image, video (Omni), music (Lyria), TTS + voices, transcription, video analysis
+|   |   +-- web/               # web_search, deep_research, agent_task (Antigravity)
 |   |   +-- rag/               # file_store, file_search, upload
 |   +-- schemas/               # Pydantic v2 validation
 |   +-- utils/                 # @file expansion, token estimation
@@ -656,6 +704,11 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide.
 ---
 
 ## Changelog
+
+### v4.8.0
+- `pro` → Gemini 4 Argon; video on Gemini Omni Flash (Veo 3.1 Preview shut down upstream); Nano Banana 2.1 and Lite; Gemini 3.8 TTS with Voice Library, voice design and replication
+- New tools: video understanding, music (Lyria), voices ×3, multimodal embeddings, Antigravity agent; Deep Research Max; Robotics ER; Gemma 4
+- No sampling parameters to Gemini 3.6+, 64K output budget, quota fallback covers Argon; registry verifies unlisted models by name
 
 ### v4.7.0
 - `gemini_transcribe_audio`: speech to text (85+ languages, diarization, word timestamps, vocabulary, smart/verbatim); `google-genai>=2.20.0`

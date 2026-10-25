@@ -50,7 +50,7 @@ def fake(monkeypatch):
     inter = FakeInteractions(store)
     monkeypatch.setattr(MOD, "client", SimpleNamespace(interactions=inter))
     monkeypatch.setattr(MOD, "is_available", lambda: True)
-    monkeypatch.setattr(MOD, "resolve_agent", lambda: "deep-research-preview-04-2026")
+    monkeypatch.setattr(MOD, "resolve_agent", lambda depth="standard": "deep-research-max-preview-04-2026" if depth == "max" else "deep-research-preview-04-2026")
     monkeypatch.setattr(MOD.time, "sleep", lambda s: None)
     monkeypatch.delenv("GEMINI_ACTIVITY_LOG", raising=False)
     return inter
@@ -120,3 +120,13 @@ def test_new_research_still_works(fake):
     assert fake.created[0]["input"] == "what is the model context protocol"
     assert "previous_interaction_id" not in fake.created[0]
     assert "follow-up report" in out
+
+
+def test_depth_max_uses_the_max_agent(fake):
+    deep_research(query="compare vector databases in depth", depth="max")
+    assert fake.created[0]["agent"] == "deep-research-max-preview-04-2026"
+
+
+def test_default_depth_uses_the_standard_agent(fake):
+    deep_research(query="compare vector databases briefly")
+    assert fake.created[0]["agent"] == "deep-research-preview-04-2026"

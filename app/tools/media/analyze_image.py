@@ -10,6 +10,7 @@ from typing import Optional, List
 
 from ...tools.registry import tool
 from ...services import types, MODELS, generate_with_fallback
+from ...core import config
 
 
 MIME_TYPES = {
@@ -45,8 +46,8 @@ ANALYZE_IMAGE_SCHEMA = {
         },
         "model": {
             "type": "string",
-            "enum": ["pro", "flash"],
-            "description": "flash (default): Gemini 2.5 Flash - reliable vision. pro: Gemini 3 Pro - deeper reasoning.",
+            "enum": ["pro", "flash", "flash-lite", "robotics"],
+            "description": "flash (default): newest Gemini Flash. pro: newest flagship (Gemini 4 Argon) for deeper reasoning. flash-lite: cheapest. robotics: Gemini Robotics ER for spatial reasoning — ask for points/boxes/trajectories and it answers in JSON with [y, x] coordinates normalized to 0-1000.",
             "default": "flash"
         },
         "media_resolution": {
@@ -76,7 +77,8 @@ def _load_image_part(image_path: str) -> types.Part:
     description=(
         "Analyze one or more images using Gemini vision. "
         "Use cases: describe images, extract text (OCR), identify objects, compare screenshots, "
-        "review UI/UX, analyze diagrams, answer questions about images. "
+        "review UI/UX, analyze diagrams, answer questions about images, and spatial reasoning "
+        "(points, bounding boxes, trajectories) with model='robotics'. "
         "Pass multiple images via image_paths to compare or analyze a sequence."
     ),
     input_schema=ANALYZE_IMAGE_SCHEMA,
@@ -123,8 +125,7 @@ def analyze_image(
 
         # Build config
         config_kwargs = {
-            "temperature": 0.3,
-            "max_output_tokens": 4096,
+            "max_output_tokens": config.max_output_tokens,
         }
         resolution_enum = MEDIA_RESOLUTIONS.get(media_resolution)
         if resolution_enum is not None:

@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-10-25
+
+Everything Google shipped in the Gemini API from June to October 2026, except the real-time Live API models. Audit sources: the live model list, the official changelog and model cards, and the SDK request schema. **Verified live on 2026-10-25** with `scripts/smoke_live.py`: 19/19 checks passed (Argon, 3.8 Flash, Gemma 4, search, Nano Banana 2.1 at 4:1 → 2064×512, Nano Banana 2 Lite, vision, Robotics ER, TTS 3.8 and Lite, transcription, Voice Library, YouTube analysis, embeddings, Omni video 3 s 640×360 with stereo audio, Lyria clip, Deep Research, Antigravity).
+
+### Fixed
+- **Video generation was broken since 2026-10-22**: Google shut down Veo 3.1 Preview in the Gemini API. `gemini_generate_video` now runs on **Gemini Omni Flash** (Interactions API): text/image to video, subject and style references, first+last frame interpolation, conversational edits and extensions of a generated clip (`continuation_id`), edits/extensions of an uploaded clip ≤ 10 s (not available in the EEA/CH/UK), 16:9 or 9:16, 360p/720p native and 1080p/4k upscaled (URI delivery), `duration` 3-10 s (in the SDK request schema though not in the guide; verified live), `retrieve_id` after a timeout. Veo model names are accepted and mapped to Omni with a note.
+- **The registry missed three new naming schemes**: Gemini 4 codenames (`gemini-4-argon`), Nano Banana (`gemini-nano-banana-2.1`) and the unlisted-but-served families. `CategorySpec` now takes several patterns ranked oldest scheme first (a newer scheme always wins), and when no candidate is listed the registry verifies fallbacks with `models.get()` ("probed").
+- `temperature`/`top_p`/`top_k` were sent to every model: they are deprecated and ignored from Gemini 3.6 on, with HTTP 400 announced for future generations. `legacy_sampling()` now sends temperature only to Gemini 2.x and Gemma.
+- `max_output_tokens` was 8192 (4096 in image analysis): on Gemini 3+ thinking and answer share it, and Google recommends ≥ 32768. Default now 65536, configurable with `GEMINI_MAX_OUTPUT_TOKENS`.
+- The quota fallback only triggered for model IDs containing "pro", so it never covered Argon; it now covers any non-Flash model and skips spending-cap errors (falling back cannot help there).
+
+### Changed
+- **`pro` = Gemini 4 Argon** (GA 2026-10-13, flagship reasoning, 1M context, thinking low/medium/high).
+- **Images**: `flash` = Nano Banana 2.1 (GA 2026-10-06; `gemini-3.1-flash-image` is deprecated); new `lite` = Nano Banana 2 Lite; panoramic 1:4, 4:1, 1:8, 8:1; `image_size` 512/1K/2K/4K on every model (`auto` keeps 2K on pro); up to 14 reference images; `google_search` grounding; `thinking_level`.
+- **TTS** moved to the Interactions API with Gemini 3.8 Flash TTS / Flash-Lite TTS (GA 2026-09-22): any featured, Voice Library, designed or replicated voice; `style` and `language`; per-speaker style in dialogues; WAV output (PCM wrapped). `model="pro"` is an alias of the Flash TTS (Gemini 2.5 Pro TTS access was restricted on 2026-09-18).
+- `ask_model` routes `gemma-*` (Gemma 4) to the native API with an OpenRouter mirror; `lyria-*` is Gemini-only.
+- `gemini_analyze_image`: `flash-lite` and `robotics` (Gemini Robotics ER 2: points, boxes, trajectories as JSON).
+- `gemini_deep_research`: `depth="max"` selects Deep Research Max.
+- `gemini_transcribe_audio`: custom vocabulary capped at 1000 terms (upstream limit).
+- **google-genai >= 2.33.0** (Voices API from 2.25; request schema with video/speech/agent configs).
+
+### Added
+- `gemini_analyze_video`: local file or public YouTube URL; `processing="agentic"` (Gemini 4 Argon, 3.8 Flash, 3.6 Flash, 3.5 Flash-Lite) navigates long videos on demand.
+- `gemini_generate_music`: Lyria 3.5 full songs or Lyria 3 Clip 30 s, from text and optional images; MP3 + lyrics; `retrieve_id`.
+- `gemini_list_voices`, `gemini_design_voice`, `gemini_replicate_voice` (consent audio required and verified by Google).
+- `gemini_embed`: Gemini Embedding 2 multimodal embeddings with automatic task prefixes, separate or aggregated vectors, Matryoshka dimensions.
+- `gemini_agent_task`: Antigravity managed agent (Linux sandbox hosted by Google: code, files, web), continuation and retrieval.
+- `app/services/interactions.py`: shared Interactions API helpers. `scripts/smoke_live.py`: one live call per tool (`--expensive` for video, music, research, agent).
+- Registry categories: `image_lite`, `video` (Omni), `tts_lite`, `music`, `music_clip`, `deep_research_max`, `agent`, `embedding`, `robotics`; env vars `GEMINI_MODEL_IMAGE_LITE`, `_VIDEO`, `_TTS_LITE`, `_MUSIC`, `_MUSIC_CLIP`, `_DEEP_RESEARCH_MAX`, `_AGENT`, `_EMBEDDING`, `_ROBOTICS`, `GEMINI_MAX_OUTPUT_TOKENS`. Tool count is now 28.
+
+### Removed
+- `GEMINI_MODEL_VEO31*`, `GEMINI_MODEL_TTS_PRO` and the `video_fast`/`video_lite`/`tts_pro` categories (models shut down or restricted upstream).
+
+### Not included, by design
+- Live API models (Gemini 3.8 Live and Live Extended Thinking, 3.5 Transcribe Live, 3.5 Live Translate, Robotics ER streaming, Lyria RealTime) and the Computer Use tool: they need a persistent real-time client loop that a request/response MCP tool cannot provide.
+
 ## [4.7.0] - 2026-09-19
 
 ### Added

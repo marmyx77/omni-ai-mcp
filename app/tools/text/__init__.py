@@ -8,6 +8,7 @@ from .challenge import challenge
 from .conversations import list_conversations, delete_conversation
 from .models import list_models
 from .ask_model import ask_model
+from .embed import embed
 
 __all__ = [
     "ask_gemini",
@@ -18,4 +19,5 @@ __all__ = [
     "delete_conversation",
     "list_models",
     "ask_model",
+    "embed",
 ]

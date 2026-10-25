@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-<!-- doc-status: current | updated: 2026-09-19 -->
+<!-- doc-status: current | updated: 2026-10-25 -->
 
 This file provides context to Claude Code when working with this repository.
 
@@ -8,13 +8,13 @@ This file provides context to Claude Code when working with this repository.
 
 This is a **multi-provider MCP server** bridging Claude Code with Google Gemini AI and 400+ models via OpenRouter. Claude can access Gemini's unique capabilities (1M context, video, TTS, Deep Research, RAG) plus any model available on OpenRouter (GPT-4o, Llama, Mistral, Claude, etc.) through a single unified interface.
 
-**Version:** 4.7.0
-**SDK:** google-genai >= 2.20.0 (Interactions API 'steps' schema, audio_transcription_config) + mcp 1.x FastMCP (pinned `<2`) + filelock
+**Version:** 4.8.0
+**SDK:** google-genai >= 2.33.0 (Interactions API 'steps' schema, Voices API, video/speech/agent request schema) + mcp 1.x FastMCP (pinned `<2`) + filelock
 **Architecture:** Modular package structure with SQLite persistence, version-aware model auto-detection, and multi-provider routing
 
 See also: [CHANGELOG.md](CHANGELOG.md) for release notes, and `DEVELOPMENT_ROADMAP.md` for future plans (internal file, git-ignored — exists only in local checkouts, so no markdown link: it would 404 on GitHub).
 
-## Architecture (v4.7.0)
+## Architecture (v4.8.0)
 
 **Production-grade MCP server** with FastMCP SDK:
 
@@ -24,7 +24,7 @@ omni-ai-mcp/
 ├── pyproject.toml            # Package configuration
 ├── app/
 │   ├── __init__.py          # Package init, exports main(), __version__
-│   ├── server.py            # FastMCP server (21 tools with @mcp.tool())
+│   ├── server.py            # FastMCP server (28 tools with @mcp.tool())
 │   ├── cli.py               # Setup wizard CLI (omni-ai-mcp-setup)
 │   │
 │   ├── core/                # Infrastructure & cross-cutting concerns
@@ -37,6 +37,7 @@ omni-ai-mcp/
 │   │   ├── __init__.py      # Service exports
 │   │   ├── gemini.py        # Gemini client wrapper, generate_with_fallback()
 │   │   ├── model_registry.py # Auto-detects newest model per category from the live API (v4.6)
+│   │   ├── interactions.py  # Interactions API helpers: file inputs, polling, outputs, media (v4.8)
 │   │   ├── openrouter.py    # OpenRouter client, 400+ models (NEW v4.0)
 │   │   └── persistence.py   # SQLite conversation storage + conversation index
 │   │
@@ -50,19 +51,24 @@ omni-ai-mcp/
 │   │   │   ├── brainstorm.py    # Creative ideation (6 methodologies)
 │   │   │   ├── challenge.py     # Critical thinking / Devil's Advocate
 │   │   │   ├── code_review.py   # Code analysis
+│   │   │   ├── embed.py         # Multimodal embeddings (Gemini Embedding 2) (v4.8)
 │   │   │   └── conversations.py # Conversation management (list, delete)
 │   │   ├── code/            # Code tools
 │   │   │   ├── analyze_codebase.py # Large-scale analysis (1M context, 5MB limit)
 │   │   │   └── generate_code.py    # Structured generation with dry-run & XML sanitization
 │   │   ├── media/           # Media tools
-│   │   │   ├── analyze_image.py  # Vision analysis
-│   │   │   ├── generate_image.py # Imagen image generation
-│   │   │   ├── generate_video.py # Veo video generation
-│   │   │   ├── text_to_speech.py # TTS with 30 voices
+│   │   │   ├── analyze_image.py  # Vision analysis + Robotics ER spatial reasoning
+│   │   │   ├── analyze_video.py  # Video understanding: file/YouTube, static/agentic (v4.8)
+│   │   │   ├── generate_image.py # Nano Banana Pro / 2.1 / 2 Lite
+│   │   │   ├── generate_video.py # Gemini Omni Flash: generate, edit, extend, interpolate (v4.8)
+│   │   │   ├── generate_music.py # Lyria songs and clips (v4.8)
+│   │   │   ├── text_to_speech.py # Gemini 3.8 TTS via Interactions API (v4.8)
+│   │   │   ├── voices.py         # Voice Library list, voice design, voice replication (v4.8)
 │   │   │   └── transcribe_audio.py # Speech to text: diarization, timestamps, vocabulary (v4.7)
 │   │   ├── web/             # Web tools
 │   │   │   ├── web_search.py     # Google-grounded search
-│   │   │   └── deep_research.py  # Deep Research Agent (Interactions API)
+│   │   │   ├── deep_research.py  # Deep Research / Deep Research Max agents (Interactions API)
+│   │   │   └── agent_task.py     # Antigravity managed agent in a Google sandbox (v4.8)
 │   │   └── rag/             # RAG tools
 │   │       ├── file_store.py    # Create/list file stores
 │   │       ├── file_search.py   # Query documents
@@ -91,41 +97,49 @@ omni-ai-mcp/
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | Entry Point | `run.py` | Wrapper that imports and runs `app.main()` |
-| FastMCP Server | `app/server.py` | FastMCP server with 21 `@mcp.tool()` registrations |
+| FastMCP Server | `app/server.py` | FastMCP server with 28 `@mcp.tool()` registrations |
+| Interactions helpers | `app/services/interactions.py` | File inputs (inline/Files API), background polling, `steps` output extraction, media saving (inline or URI) |
 | Config | `app/core/config.py` | Environment variables, defaults, version, model IDs |
 | Logging | `app/core/logging.py` | StructuredLogger with JSON support |
 | Security | `app/core/security.py` | Sandboxing, sanitization, safe writes, cross-platform file locking |
 | Tool Registry | `app/tools/registry.py` | @tool decorator, tool discovery |
 | Gemini Client | `app/services/gemini.py` | API wrapper with generate_with_fallback() |
-| Model Registry | `app/services/model_registry.py` | Lists live models (cache 1h), picks the newest per category by version; env override > auto > fallback |
+| Model Registry | `app/services/model_registry.py` | Lists live models (cache 1h), picks the newest per category by naming scheme + version; env override > auto > fallback (verified by name if unlisted) |
 | OpenRouter Client | `app/services/openrouter.py` | 400+ models via OpenRouter API |
 | Persistence | `app/services/persistence.py` | SQLite conversation storage + conversation index |
 
-### Available Tools (21)
+### Available Tools (28)
 
 | Tool | Description | Default Model |
 |------|-------------|---------------|
 | `ask_model` | **NEW** Multi-provider routing: Gemini + 400+ via OpenRouter | auto-detected |
 | `gemini_list_models` | Live model catalog: resolved ID per category + provenance | - |
-| `ask_gemini` | Text generation with thinking + dual mode (local/cloud) | newest Gemini Pro |
-| `gemini_code_review` | Code analysis | newest Gemini Pro |
-| `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | newest Gemini Pro |
-| `gemini_challenge` | Critical thinking / Devil's Advocate | newest Gemini Pro |
+| `ask_gemini` | Text generation with thinking + dual mode (local/cloud) | newest flagship (Gemini 4 Argon) |
+| `gemini_code_review` | Code analysis | newest flagship |
+| `gemini_brainstorm` | Advanced brainstorming (6 methodologies) | newest flagship |
+| `gemini_challenge` | Critical thinking / Devil's Advocate | newest flagship |
+| `gemini_embed` | **NEW** Multimodal embeddings (text, image, audio, video, PDF) | Gemini Embedding 2 |
+| `gemini_agent_task` | **NEW** Antigravity managed agent in a Google-hosted Linux sandbox | Antigravity Agent |
 | `gemini_web_search` | Google-grounded search | newest Gemini Flash |
-| `gemini_deep_research` | Autonomous multi-step research (5-60 min) | Deep Research Agent |
+| `gemini_deep_research` | Autonomous multi-step research (5-60 min), `depth=max` for Deep Research Max | Deep Research Agent |
 | `gemini_list_conversations` | **NEW** List conversations with title, mode, activity | - |
 | `gemini_delete_conversation` | **NEW** Delete conversations by ID or title | - |
 | `gemini_file_search` | RAG document queries | newest Gemini Flash |
 | `gemini_create_file_store` | Create RAG stores | - |
 | `gemini_upload_file` | Upload to RAG stores | - |
 | `gemini_list_file_stores` | List RAG stores | - |
-| `gemini_analyze_image` | Image analysis (vision) | newest Gemini Flash |
-| `gemini_generate_image` | Image generation | newest Gemini Pro Image |
-| `gemini_generate_video` | Video generation (sync polling) | newest Veo |
-| `gemini_text_to_speech` | TTS with 30 voices | newest Gemini Flash TTS |
+| `gemini_analyze_image` | Image analysis (vision); `model=robotics` for spatial JSON | newest Gemini Flash |
+| `gemini_analyze_video` | **NEW** Video understanding (file/YouTube, static or agentic) | newest Gemini Flash |
+| `gemini_generate_image` | Image generation/editing (Nano Banana Pro / 2.1 / 2 Lite) | newest Nano Banana |
+| `gemini_generate_video` | Video generation/editing/extension (background polling) | newest Gemini Omni Flash |
+| `gemini_generate_music` | **NEW** Songs and clips with Lyria (MP3 + lyrics) | newest Lyria |
+| `gemini_text_to_speech` | Gemini 3.8 TTS: library/designed/replicated voices, style, dialogue | newest Gemini Flash TTS |
+| `gemini_list_voices` | **NEW** Voice Library browser | - |
+| `gemini_design_voice` | **NEW** Custom voice from a description | newest Gemini Flash TTS |
+| `gemini_replicate_voice` | **NEW** Voice replication with consent audio | newest Gemini Flash TTS |
 | `gemini_transcribe_audio` | **NEW** Speech to text: diarization, word timestamps, vocabulary, smart/verbatim, ≤ 1 h | newest Gemini Transcribe |
-| `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | newest Gemini Pro |
-| `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | newest Gemini Pro |
+| `gemini_analyze_codebase` | Large codebase analysis (1M context, 5MB limit) | newest flagship |
+| `gemini_generate_code` | Structured code generation (dry-run, XML sanitization) | newest flagship |
 
 
 ## Development Commands
@@ -271,11 +285,16 @@ class MyToolInput(BaseModel):
 | `GEMINI_DISABLED_TOOLS` | - | Comma-separated tool names to disable |
 | `GEMINI_MODEL_AUTODETECT` | true | Newest model per category from the live API; `false` = static fallbacks |
 | `GEMINI_MODEL_PRO` / `_FLASH` / `_FLASH_LITE` | auto-detected | Pin a text model (explicit value always wins) |
-| `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` | auto-detected | Pin an image model |
-| `GEMINI_MODEL_VEO31` / `_VEO31_FAST` / `_VEO31_LITE` | auto-detected | Pin a video model |
-| `GEMINI_MODEL_TTS_FLASH` / `_TTS_PRO` | auto-detected | Pin a TTS model |
+| `GEMINI_MODEL_IMAGE_PRO` / `_IMAGE_FLASH` / `_IMAGE_LITE` | auto-detected | Pin an image model |
+| `GEMINI_MODEL_VIDEO` | auto-detected | Pin the video model (Gemini Omni Flash) |
+| `GEMINI_MODEL_TTS_FLASH` / `_TTS_LITE` | auto-detected | Pin a TTS model |
 | `GEMINI_MODEL_TRANSCRIBE` | auto-detected | Pin the speech-to-text model |
-| `GEMINI_MODEL_DEEP_RESEARCH` | auto-detected | Pin the research agent |
+| `GEMINI_MODEL_MUSIC` / `_MUSIC_CLIP` | auto-detected | Pin a Lyria model |
+| `GEMINI_MODEL_DEEP_RESEARCH` / `_DEEP_RESEARCH_MAX` | auto-detected | Pin a research agent |
+| `GEMINI_MODEL_AGENT` | auto-detected | Pin the Antigravity agent version |
+| `GEMINI_MODEL_EMBEDDING` | auto-detected | Pin the embedding model |
+| `GEMINI_MODEL_ROBOTICS` | auto-detected | Pin the Robotics ER model |
+| `GEMINI_MAX_OUTPUT_TOKENS` | 65536 | Output budget (thinking + answer share it on Gemini 3+; Google recommends ≥ 32K) |
 | `OPENROUTER_API_KEY` | — | OpenRouter key (enables ask_model for 400+ models) |
 | `OPENROUTER_DEFAULT_MODEL` | openai/gpt-4o | Default model for OpenRouter |
 | `OPENROUTER_TIMEOUT` | 120 | OpenRouter generation timeout in seconds (search models need headroom) |
@@ -541,7 +560,7 @@ python3 -m pytest tests/ --cov=app --cov-report=html
 
 ### Test Structure
 
-Test files: <!--fact:unit-test-files-->15<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
+Test files: <!--fact:unit-test-files-->18<!--/fact--> unit + <!--fact:integration-test-files-->4<!--/fact--> integration (markers enforced by `virgilio check` against the real filesystem — update them when adding/removing a test file). All tests are hermetic: no API key, no network. Per-test counts are deliberately not written here (they drift; run `pytest -q` for the live number).
 ```
 tests/
 ├── conftest.py                    # Shared fixtures (temp_sandbox, etc.)
@@ -559,6 +578,9 @@ tests/
 │   ├── test_deep_research_resume.py # retrieve / resume / follow-up modes with a fake client
 │   ├── test_version_consistency.py # every stated version == pyproject.toml (badge, plugin.json, manifest, CLAUDE.md)
 │   ├── test_transcribe_audio.py   # transcription config, response → segments, formatting, registry category
+│   ├── test_interactions_helpers.py # Interactions helpers: file inputs, polling, outputs, media saving
+│   ├── test_media_tools_v48.py    # Omni video, TTS 3.8, Lyria, video analysis, voices (requests validated against the SDK schema)
+│   ├── test_text_agent_embed_v48.py # sampling params, 64K budget, quota fallback, Gemma, embeddings, Antigravity, image options
 │   ├── test_openrouter_client.py  # OpenRouter client, citations
 │   └── test_ask_model.py          # Multi-provider routing
 └── integration/                   # v3.0.0+ integration tests
@@ -573,7 +595,7 @@ tests/
 
 - **Before every commit** that touches a doc/plan: `node virgilio/bin/cli.mjs check --config virgilio.config.json` must be **green**. Full rulebook: [DOC_GOVERNANCE.md](DOC_GOVERNANCE.md).
 - **Release status** is never declared "released/published" without the tag on `origin/main` and a green CI run. PyPI/`.dxt` state is external tier (no probe configured): if you can't verify it, write "not verifiable", never "verified".
-- **End of milestone / pre-release / suspected drift**: run the `virgilio/modes/audit.md` playbook (§9, 3 axes vs. reality). Standing §9 items: the MCP tool count (21), roadmap «Planned» sections vs. shipped versions, PyPI publication vs. "released" claims.
+- **End of milestone / pre-release / suspected drift**: run the `virgilio/modes/audit.md` playbook (§9, 3 axes vs. reality). Standing §9 items: the MCP tool count (28), roadmap «Planned» sections vs. shipped versions, PyPI publication vs. "released" claims.
 - **Every false claim you find** that's cleanly mechanizable → a new rule in `virgilio.config.json` + a bite fixture. One-offs stay with the human audit (proportionality).
 - **Per-fact SSOT**: a count/status/version lives in **exactly one** owner doc (map in [DOC_GOVERNANCE.md](DOC_GOVERNANCE.md) §2); elsewhere, LINK to it. Never copy it.
 - **Status flip = Definition of Done**: if a task closes a phase, updating the status is **inside** the task: this file's `doc-status` date + Roadmap section (CI-enforced), and `DEVELOPMENT_ROADMAP.md` («Current Status», Handoff log — internal, git-ignored, checked locally only).
@@ -679,22 +701,24 @@ docker-compose --profile monitoring up -d
 - Resource limits (2 CPU, 2GB RAM)
 - Log rotation (10MB max, 3 files)
 
-## Model Resolution (v4.6.0)
+## Model Resolution (v4.6.0, multi-scheme + probing since v4.8.0)
 
-`MODELS`, `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS` in `app/services/gemini.py` are lazy maps: each lookup asks `model_registry.resolve(category)`. Order per category:
+`MODELS`, `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS`, `MUSIC_MODELS` in `app/services/gemini.py` are lazy maps: each lookup asks `model_registry.resolve(category)`. 17 categories (text pro/flash/lite, image pro/flash/lite, video, tts/tts_lite, transcribe, music/music_clip, deep_research/_max, agent, embedding, robotics). Order per category:
 
 1. **env override** — `GEMINI_MODEL_*` set explicitly (never validated against the API: the user's call)
-2. **auto-detect** — newest model in the live `models.list()` whose ID matches the category's anchored regex (`CATEGORY_SPECS`), ranked by `(major, minor, stable-over-preview)`
-3. **static fallback** — first `fallbacks` entry the API exposes (or the first one if discovery failed)
+2. **auto-detect** — newest model in the live `models.list()` matching one of the category's anchored regexes (`CATEGORY_SPECS.patterns`, oldest naming scheme first), ranked by `(scheme, major, minor, stable-over-preview)`: a newer naming scheme always wins (Nano Banana 2.1 beats gemini-3.1-flash-image)
+3. **static fallback** — first `fallbacks` entry the API lists; if none is listed, the first one a direct `models.get()` confirms (**probed**: in Oct 2026 the API stopped listing Veo while still serving it); first entry if discovery failed
 4. **config default** — same value the env var would default to (emits a `RuntimeWarning`)
 
-Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts` variants never leak into the text categories. Discovery is cached 1 h (5 min back-off on failure). Never hardcode a model ID in a tool: add a category to `CATEGORY_SPECS` instead.
+The flagship (`text_pro`) pattern accepts `-pro` and Gemini 4 codenames (`gemini-4-argon`) but rejects every non-flagship family word (flash, lite, live, tts, image, transcribe, embedding, robotics, omni, nano, computer). Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts`, `-streaming` variants never leak into other categories. Discovery is cached 1 h (5 min back-off on failure). Never hardcode a model ID in a tool: add a category to `CATEGORY_SPECS` instead.
 
 ## Gemini API Nuances
 
 ### Thinking Mode
 - `ask_gemini` exposes `thinking_level`: `auto` (default), `low`, `medium`, `high`; `off` is a deprecated alias of `auto`
-- Gemini 3+: sent as `thinking_level`. These models **always think**: `auto` = the model's dynamic default, measured costlier than `low` (2026-09-19: 3.8 Flash 181 vs 45 thought tokens). `minimal` is rejected by 3.1 Pro and 3.8 Flash, so it is not exposed
+- Gemini 3+: sent as `thinking_level`. These models **always think**: `auto` = the model's dynamic default, measured costlier than `low` (2026-09-19: 3.8 Flash 181 vs 45 thought tokens). `minimal` is rejected by 3.1 Pro, 3.8 Flash and Gemini 4 Argon (low/medium/high only), so it is not exposed for text (Nano Banana 2.1 does accept it)
+- **Sampling parameters** (`temperature`, `top_p`, `top_k`) are deprecated and ignored from Gemini 3.6 on; Google announces HTTP 400 for future generations. `legacy_sampling()` sends temperature only to 2.x and Gemma. Tools keep the `temperature` argument for compatibility
+- **Output budget**: thinking and answer share `max_output_tokens`. Default 65536 (`GEMINI_MAX_OUTPUT_TOKENS`); Google recommends ≥ 32768. Argon can go up to 1M with background long decode (not used by the tools)
 - Gemini 2.x: sent as `thinking_budget` (1024 / 4096 / 8192)
 - Set `include_thoughts=True` to see the reasoning summary (works with `auto` too)
 
@@ -709,16 +733,29 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - Upload with `file_search_stores.upload_to_file_search_store()`
 - Query with `file_search` tool in generate_content config
 
-### Image Generation
-- Pro model supports up to 4K resolution
-- Flash model limited to 1024px
-- Response contains `inline_data` with image bytes
+### Image Generation (Nano Banana)
+- `pro` Nano Banana Pro, `flash` Nano Banana 2.1 (GA 2026-10-06), `lite` Nano Banana 2 Lite; all via `generate_content` with `image_config`
+- Sizes `512`/`1K`/`2K`/`4K`; panoramic `1:4`, `4:1`, `1:8`, `8:1` on 2.1 (live: 4:1 → 2064×512); up to 14 reference images; `google_search` grounding; thinking minimal/medium/high
+- 2.1 returns JPEG: the tool fixes the file extension to the returned MIME type
 
-### Video Generation
-- Veo 3.1 supports native audio (dialogue, effects, ambient)
-- 1080p requires 8 second duration
-- Uses async polling with `asyncio.to_thread()` (v3.0.1)
-- Can take 1-6 minutes to generate
+### Video Generation (Gemini Omni Flash)
+- **Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22** (the API still answers `models.get` for its IDs but no longer lists them); Omni Flash replaces it
+- Interactions API: `response_format={"type": "video", aspect_ratio 16:9|9:16, resolution 360p|720p|1080p|4k, delivery inline|uri, duration "Ns"}`; `generation_config.video_config.task` optional (text_to_video, image_to_video, reference_to_video, edit, extend); `previous_interaction_id` for conversational edits/extensions
+- `duration` is in the request schema though not in the guide: live-verified (`"3s"` → 3.0 s 640×360 with stereo AAC)
+- Background run + polling (`interactions.run`), ~25 s for a 3 s 360p clip; 1080p/4k are upscaled and delivered by URI
+- Uploaded-clip edit/extend: ≤ 10 s, not available in the EEA/CH/UK; no negative-prompt field (the tool appends "Avoid: ...")
+
+### Music (Lyria)
+- `lyria-3.5` full songs (a couple of minutes, steer length in the prompt), `lyria-3-clip-preview` 30 s clips; text and image inputs; Interactions API; MP3 44.1 kHz stereo + lyrics in `output_text`
+
+### Video Understanding
+- Interactions API with a `video` block (inline, Files API URI, or public YouTube URL); `processing: "agentic"` on the block opts into timeline navigation (Gemini 4 Argon, 3.8 Flash, 3.6 Flash, 3.5 Flash-Lite only)
+
+### Embeddings
+- `gemini-embedding-2` is multimodal and has **no task_type**: the task is a text prefix (`task: search result | query: ...`, `title: none | text: ...`). Several parts in one call are **aggregated** into one vector; wrap each in its own `Content` for separate vectors. 3072 dims default, Matryoshka 768/1536 recommended
+
+### Antigravity agent
+- `interactions.create(agent="antigravity-preview-MM-YYYY", environment="remote", background=True)`; built on 3.8 Flash by default (`agent_config={"type": "antigravity", "model": ...}` to change); files persist across turns via `previous_interaction_id`
 
 ### Audio Transcription (v4.7.0)
 - Model category `transcribe` (`gemini-X.Y-transcribe`; the `-live` WebSocket variant is excluded)
@@ -726,10 +763,11 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 - Read `part.audio_transcription` (text, speaker_label, language_code, words[word,start_offset,end_offset]); `response.text` is EMPTY when no options are set
 - Upstream limits: 1 h per request, 30 min with diarization/timestamps; diarization and vocabulary are mutually exclusive; **SMART mode is rejected together with word timestamps** (400, found live 2026-09-19, not in the model card) → `mode=auto` picks verbatim when timestamps are on; inline audio ≤ 20 MB, above that use the Files API
 
-### Text-to-Speech
-- 30 voice options with different characteristics
-- Multi-speaker supports up to 2 voices
-- Output is PCM 24kHz, 16-bit, mono WAV
+### Text-to-Speech (Gemini 3.8 TTS)
+- Interactions API: `generation_config.speech_config` is a **list** `[{"voice", "language"}]` for one voice and an **object** `{"speakers": [...]}` for two; style goes in `speech_metadata` annotations on each text item
+- Voices: 30 featured, hundreds in the Voice Library (`client.voices.list`, filters with OR inside a list, AND across filters, `type_` in Python), designed `voice_...`, replicated `voice_...` / stateless `voicekey_...`
+- Output is WAV (24 kHz mono); raw PCM (`audio/l16`) is wrapped by the tool
+- Gemini 2.5 Pro TTS access was restricted on 2026-09-18: `model="pro"` is now an alias of the 3.8 Flash TTS
 
 ## Security Notes
 
@@ -743,14 +781,24 @@ Patterns are anchored so `-live`, `-transcribe`, `-customtools`, `-image`, `-tts
 
 ## Roadmap
 
-### v4.7.0 (Current) - Audio Transcription
+### v4.8.0 (Current) - Google models Jun-Oct 2026
+- ✅ `pro` → Gemini 4 Argon (flagship pattern accepts Gemini 4 codenames); registry: multi-scheme patterns, probing of unlisted models, 17 categories
+- ✅ Video rewritten on Gemini Omni Flash (Veo 3.1 Preview shut down 2026-10-22): generate, edit, extend, interpolate, references, 360p-4k, duration, retrieve after timeout
+- ✅ Nano Banana 2.1 + 2 Lite; panoramic ratios, 512-4K on every model, 14 references, search grounding, thinking levels
+- ✅ Gemini 3.8 TTS via Interactions API + `gemini_list_voices`, `gemini_design_voice`, `gemini_replicate_voice`
+- ✅ New tools `gemini_analyze_video` (static/agentic, YouTube), `gemini_generate_music` (Lyria), `gemini_embed` (Embedding 2), `gemini_agent_task` (Antigravity); Deep Research Max; Robotics ER; Gemma 4 in `ask_model`
+- ✅ No sampling params to Gemini 3.6+, 64K output budget, quota fallback for any non-Flash model (skips spending-cap errors)
+- ✅ `scripts/smoke_live.py`: one live call per tool; all 19 checks passed on 2026-10-25
+- Out of scope by design: Live API models (3.8 Live, Transcribe Live, Live Translate, Robotics streaming, Lyria RealTime) and Computer Use (both need a client-side real-time loop)
+
+### v4.7.0 (Released) - Audio Transcription
 - ✅ `gemini_transcribe_audio`: newest `gemini-*-transcribe` via registry category `transcribe`; diarization, word timestamps (timestamped sentences), custom vocabulary, mode auto/smart/verbatim; Files API for large files; `.json`/text export
 - ✅ `google-genai >= 2.20.0` (audio_transcription_config, SMART/VERBATIM mode)
 
 ### v4.6.x (Released) - Model Auto-Detection
 - ✅ Registry picks the newest model per category from the live API (version-aware, stable > preview); tools resolve lazily through `MODELS` maps
 - ✅ `gemini_list_models` reports provenance (auto / env / fallback) and runners-up
-- ✅ `flash-lite` + `veo31_lite` aliases; Veo 3.0 / 2.0 dropped (removed upstream)
+- ✅ `flash-lite` + `veo31_lite` aliases; Veo 3.0 / 2.0 dropped (removed upstream) <!-- virgilio:allow-status-mention (historical) -->
 - ✅ 34 dead integration tests removed; CI integration job no longer `continue-on-error`
 - ✅ 4.6.1: clean sdist; `ask_gemini` thinking knob chosen on the resolved model ID
 - ✅ 4.6.2: `mcp[cli]<2` pin — mcp 2.x renamed `FastMCP` → `MCPServer`, fresh installs crashed at import

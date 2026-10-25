@@ -9,7 +9,7 @@ from typing import Optional
 
 from ...tools.registry import tool
 from ...services.model_registry import CATEGORY_PRIORITIES
-from ...services.gemini import generate_with_fallback, types, is_available, get_error
+from ...services.gemini import generate_with_fallback, types, is_available, get_error, legacy_sampling
 from ...services.openrouter import openrouter_client
 
 
@@ -23,7 +23,8 @@ ASK_MODEL_SCHEMA = {
         "model": {
             "type": "string",
             "description": (
-                "Model ID to use. Gemini examples: 'gemini-3.1-pro-preview', 'gemini-2.5-flash'. "
+                "Model ID or alias. Gemini aliases: 'pro' (newest flagship, Gemini 4 Argon), 'flash', 'flash-lite'; "
+                "explicit IDs like 'gemini-4-argon', 'gemini-3.8-flash'; Gemma 4 open models 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'. "
                 "OpenRouter examples: 'openai/gpt-4o', 'meta-llama/llama-3.3-70b', "
                 "'anthropic/claude-3.5-sonnet', 'perplexity/sonar-pro' (web search with citations). "
                 "Use gemini_list_models to see all available options."
@@ -44,7 +45,7 @@ ASK_MODEL_SCHEMA = {
         },
         "temperature": {
             "type": "number",
-            "description": "Sampling temperature 0.0-1.0 (default: 0.7)",
+            "description": "Sampling temperature 0.0-1.0 (default: 0.7). Used by OpenRouter models, Gemini 2.x and Gemma; ignored by Gemini 3.6+ (deprecated upstream).",
             "default": 0.7,
             "minimum": 0.0,
             "maximum": 1.0
@@ -55,7 +56,7 @@ ASK_MODEL_SCHEMA = {
 
 # All known Gemini model prefixes for auto-detection
 _GEMINI_PREFIXES = (
-    "gemini-", "models/gemini-", "imagen-", "veo-", "deep-research"
+    "gemini-", "models/gemini-", "gemma-", "models/gemma-", "imagen-", "veo-", "deep-research", "lyria-"
 )
 
 # Short aliases that always map to Gemini
@@ -63,7 +64,7 @@ _GEMINI_SHORT_NAMES = {"pro", "flash", "fast", "flash-lite"}
 
 # Gemini model prefixes that have OpenRouter equivalents (text-only)
 # veo-, imagen-, deep-research are Gemini-exclusive (no OpenRouter equivalent)
-_OPENROUTER_FALLBACK_PREFIXES = ("gemini-", "models/gemini-")
+_OPENROUTER_FALLBACK_PREFIXES = ("gemini-", "models/gemini-", "gemma-", "models/gemma-")
 _OPENROUTER_FALLBACK_SHORT_NAMES = {"pro", "flash", "fast", "flash-lite"}
 
 
@@ -83,11 +84,11 @@ def _to_openrouter_google_id(model_id: str) -> Optional[str]:
     if lower in _OPENROUTER_FALLBACK_SHORT_NAMES:
         # Short names need resolution first — caller must resolve before calling this
         return None
-    if lower.startswith("models/gemini-"):
+    if lower.startswith(("models/gemini-", "models/gemma-")):
         return f"google/{model_id[7:]}"  # strip "models/" prefix
-    if lower.startswith("gemini-"):
+    if lower.startswith(("gemini-", "gemma-")):
         return f"google/{model_id}"
-    return None  # veo-, imagen-, deep-research → no OpenRouter equivalent
+    return None  # veo-, imagen-, lyria-, deep-research → no OpenRouter equivalent
 
 
 def _resolve_gemini_model(model_id: str) -> str:
@@ -157,12 +158,11 @@ def ask_model(
             # ✅ Gemini key available → native Gemini API
             resolved = _resolve_gemini_model(model or "pro")
             try:
-                gen_config = types.GenerateContentConfig(temperature=temperature)
+                # temperature is deprecated/ignored from Gemini 3.6 on: only 2.x and Gemma get it
+                config_kwargs = legacy_sampling(resolved, temperature)
                 if system_prompt:
-                    gen_config = types.GenerateContentConfig(
-                        temperature=temperature,
-                        system_instruction=system_prompt,
-                    )
+                    config_kwargs["system_instruction"] = system_prompt
+                gen_config = types.GenerateContentConfig(**config_kwargs)
                 response = generate_with_fallback(
                     model_id=resolved,
                     contents=prompt,

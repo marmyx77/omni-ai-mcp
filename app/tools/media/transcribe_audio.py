@@ -40,6 +40,7 @@ FILE_ACTIVE_TIMEOUT_SECONDS = 180       # Files API processing wait
 MODES = {"smart": "SMART", "verbatim": "VERBATIM"}
 AUTO_MODE = "auto"   # smart, or verbatim when word timestamps are requested (SMART + timestamps is a 400 upstream)
 SENTENCE_END = (".", "?", "!", "…")
+MAX_VOCABULARY_TERMS = 1000   # custom vocabulary biasing limit (Gemini 3.5 Transcribe GA notes)
 
 TRANSCRIBE_AUDIO_SCHEMA = {
     "type": "object",
@@ -100,6 +101,8 @@ def build_transcription_config(
         mode = "verbatim" if word_timestamps else "smart"
     if mode not in MODES:
         raise ValueError(f"mode must be one of {[AUTO_MODE, *sorted(MODES)]} (got {mode!r})")
+    if vocabulary and len([v for v in vocabulary if v and v.strip()]) > MAX_VOCABULARY_TERMS:
+        raise ValueError(f"vocabulary is limited to {MAX_VOCABULARY_TERMS} terms (upstream limit)")
     if diarization and vocabulary:
         raise ValueError("diarization and vocabulary cannot be combined (upstream limitation)")
     if word_timestamps and mode == "smart":

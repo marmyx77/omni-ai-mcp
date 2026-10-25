@@ -16,6 +16,7 @@ from ...services import types, MODELS, generate_with_fallback
 from ...core.security import validate_path
 from ...utils.file_refs import expand_file_references
 from ...utils.tokens import check_prompt_size
+from ...core import config
 
 
 def sanitize_xml_content(content: str) -> str:
@@ -355,8 +356,7 @@ If you need more files first, return ONLY the JSON need_files request.
             model_id=model_id,
             contents=full_prompt,
             config=types.GenerateContentConfig(
-                temperature=0.3,  # Lower temperature for consistent code
-                max_output_tokens=8192
+                max_output_tokens=config.max_output_tokens  # thinking + answer share it on Gemini 3+
             ),
             operation="generate_code"
         )
@@ -410,8 +410,7 @@ You now have the additional files you requested. Return ONLY the <GENERATED_CODE
                             model_id=model_id,
                             contents=retry_prompt,
                             config=types.GenerateContentConfig(
-                                temperature=0.3,
-                                max_output_tokens=8192
+                                max_output_tokens=config.max_output_tokens
                             ),
                             operation="generate_code_retry"
                         )

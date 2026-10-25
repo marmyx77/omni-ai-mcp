@@ -68,9 +68,15 @@ def extract_interaction_text(interaction) -> str:
 DEEP_RESEARCH_AGENT = config.model_deep_research
 
 
-def resolve_agent() -> str:
-    """Deep Research agent ID for this call (env override > auto-detect > fallback)."""
-    return model_registry.resolve("deep_research")
+DEPTHS = {"standard": "deep_research", "max": "deep_research_max"}
+
+
+def resolve_agent(depth: str = "standard") -> str:
+    """Deep Research agent ID for this call (env override > auto-detect > fallback).
+
+    standard: fast and efficient; max: maximum comprehensiveness (slower, pricier).
+    """
+    return model_registry.resolve(DEPTHS.get(depth, "deep_research"))
 
 
 def format_deep_research_error(exc: Exception, agent: str, interaction_id: Optional[str] = None) -> str:
@@ -133,6 +139,12 @@ DEEP_RESEARCH_SCHEMA = {
         "continuation_id": {
             "type": "string",
             "description": "Interaction ID of a previous research. With an empty query: retrieve its report (waiting if still running). With a query: start a follow-up research chained to it."
+        },
+        "depth": {
+            "type": "string",
+            "enum": ["standard", "max"],
+            "default": "standard",
+            "description": "standard (default): Deep Research, fast and efficient. max: Deep Research Max, maximum comprehensiveness (slower, more sources, pricier)."
         }
     },
     "required": []
@@ -163,7 +175,8 @@ The tool will poll for completion and return the full report.""",
 def deep_research(
     query: str = "",
     max_wait_minutes: int = 30,
-    continuation_id: Optional[str] = None
+    continuation_id: Optional[str] = None,
+    depth: str = "standard",
 ) -> str:
     """
     Execute deep research using Google's Interactions API.
@@ -188,7 +201,7 @@ def deep_research(
         )
 
     max_wait_seconds = max_wait_minutes * 60
-    agent = resolve_agent()
+    agent = resolve_agent(depth)
     start_time = time.time()
 
     try:

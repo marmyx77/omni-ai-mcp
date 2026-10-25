@@ -38,7 +38,6 @@ def web_search(query: str, model: str = "flash") -> str:
         contents=query,
         config=types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())],
-            temperature=0.3
         ),
         operation="web_search"
     )

@@ -1,6 +1,6 @@
 {
   "$schema": "./virgilio/schema/virgilio.config.schema.json",
-  "_README": "virgilio's config: the SSOT for what the docs-reality gate enforces. Changing the repo's reality without updating this file (or vice versa) makes the gate fail — that's intentional. Notes: (1) CHANGELOG.md is fully historical; (2) README from '## Changelog' and DEVELOPMENT_ROADMAP from '## Version History' are historical zones (the short Contributing/License sections after README's Changelog are accepted as exempt — no status claims live there); (3) no guards: the release flow is tag→PyPI (external tier), not probeable via remote-tracking refs — deploy honesty is audited in §9; (4) the MCP tool count (21) is NOT mechanized: tool files (18) ≠ @mcp.tool registrations (21), and a wrong-proxy rule is worse than none — it stays with the §9 audit; (5) DEVELOPMENT_ROADMAP.md is git-ignored ('internal development files'): it stays in docsGlobs/historicalSections for LOCAL coverage (in CI it simply doesn't exist → fewer files scanned), but it must NOT be in statusDocs (a missing statusDoc is a Finding → red CI). The CI-enforced status doc is CLAUDE.md.",
+  "_README": "virgilio's config: the SSOT for what the docs-reality gate enforces. Changing the repo's reality without updating this file (or vice versa) makes the gate fail — that's intentional. Notes: (1) CHANGELOG.md is fully historical; (2) README from '## Changelog' and DEVELOPMENT_ROADMAP from '## Version History' are historical zones (the short Contributing/License sections after README's Changelog are accepted as exempt — no status claims live there); (3) no guards: the release flow is tag→PyPI (external tier), not probeable via remote-tracking refs — deploy honesty is audited in §9; (4) the MCP tool count (28) is NOT mechanized: tool files (23) ≠ @mcp.tool registrations (28), and a wrong-proxy rule is worse than none — it stays with the §9 audit; (5) DEVELOPMENT_ROADMAP.md is git-ignored ('internal development files'): it stays in docsGlobs/historicalSections for LOCAL coverage (in CI it simply doesn't exist → fewer files scanned), but it must NOT be in statusDocs (a missing statusDoc is a Finding → red CI). The CI-enforced status doc is CLAUDE.md.",
 
   "root": ".",
   "docsGlobs": [
@@ -71,6 +71,12 @@
       "flags": "i",
       "reason": "mcp 2.x (2026-09-07) renamed FastMCP → MCPServer; an unpinned >=1.0.0 resolves to 2.x and the server exits at import (fresh installs of 4.0.0–4.6.1 broken; caught by CI on 2026-09-19). Cite the pin: mcp[cli]>=1.0.0,<2",
       "since": "2026-09-19"
+    },
+    {
+      "pattern": "veo-\\d(\\.\\d)?-(fast-|lite-)?generate",
+      "flags": "i",
+      "reason": "Veo 3.1 Preview was shut down in the Gemini API on 2026-10-22 (Veo 2/3.0 earlier); citing a Veo model ID as usable is stale. Video runs on Gemini Omni Flash since v4.8.0. Allowed in historical zones or with the allow-marker",
+      "since": "2026-10-25"
     }
   ],
 

@@ -21,23 +21,30 @@ LIST_MODELS_SCHEMA = {
 }
 
 CATEGORY_LABELS = {
-    "text_pro": "Text Pro",
+    "text_pro": "Text Pro (flagship)",
     "text_flash": "Text Flash",
     "text_flash_lite": "Text Flash Lite",
-    "image": "Image Generation (pro)",
-    "image_flash": "Image Generation (flash)",
-    "video": "Video Generation",
-    "video_fast": "Video Generation (fast)",
-    "video_lite": "Video Generation (lite)",
+    "image": "Image (Nano Banana Pro)",
+    "image_flash": "Image (Nano Banana flash)",
+    "image_lite": "Image (Nano Banana lite)",
+    "video": "Video (Omni Flash)",
     "tts": "Text-to-Speech",
-    "tts_pro": "Text-to-Speech (pro)",
+    "tts_lite": "Text-to-Speech (lite)",
+    "transcribe": "Speech-to-Text",
+    "music": "Music (Lyria)",
+    "music_clip": "Music clip (Lyria Clip)",
     "deep_research": "Deep Research Agent",
+    "deep_research_max": "Deep Research Max Agent",
+    "agent": "Antigravity Agent",
+    "embedding": "Embeddings",
+    "robotics": "Robotics ER (spatial reasoning)",
 }
 
 SOURCE_LABELS = {
     "env": "env override",
     "auto": "auto-detected",
     "fallback": "static fallback",
+    "probed": "verified by name (not listed by the API)",
     "config": "config default",
 }
 
