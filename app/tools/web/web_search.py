@@ -15,7 +15,7 @@ WEB_SEARCH_SCHEMA = {
         "model": {
             "type": "string",
             "enum": ["pro", "flash"],
-            "description": "pro: Gemini 3 Pro - better synthesis. flash (default): faster for simple queries",
+            "description": "pro: newest Gemini flagship - better synthesis. flash (default): newest Flash, faster for simple queries",
             "default": "flash"
         }
     },

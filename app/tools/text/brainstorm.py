@@ -97,7 +97,7 @@ BRAINSTORM_SCHEMA = {
 
 @tool(
     name="gemini_brainstorm",
-    description="Advanced brainstorming with multiple methodologies. Uses Gemini 3 Pro for creative reasoning with structured frameworks like SCAMPER, Design Thinking, and more.",
+    description="Advanced brainstorming with multiple methodologies. Uses the newest Gemini flagship for creative reasoning with structured frameworks like SCAMPER, Design Thinking, and more.",
     input_schema=BRAINSTORM_SCHEMA,
     tags=["text", "creative"]
 )

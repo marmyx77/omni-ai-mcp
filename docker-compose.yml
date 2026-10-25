@@ -1,60 +1,41 @@
 # docker-compose.yml for omni-ai-mcp
-# v2.7.0 - Production deployment with security hardening
+#
+# omni-ai-mcp is a stdio MCP server: the MCP client (Claude Code, Claude Desktop)
+# starts one container per session and talks to it over stdin/stdout. Compose is
+# used here to BUILD the image and to run it interactively for a quick check:
+#
+#   docker compose build
+#   docker compose run --rm omni-ai-mcp          # then type a JSON-RPC message, Ctrl-D to exit
+#
+# To use it from Claude Code, register the container command (see README → Docker):
+#   claude mcp add omni-ai-mcp --scope user -- docker run -i --rm -e GEMINI_API_KEY=... \
+#     -v "$HOME/omni-workspace:/workspace" -v omni-ai-mcp-logs:/logs omni-ai-mcp
 
 services:
-  gemini-mcp:
+  omni-ai-mcp:
     build: .
-    container_name: omni-ai-mcp
-    restart: unless-stopped
-
+    image: omni-ai-mcp
+    stdin_open: true          # MCP over stdio
+    tty: false
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?set GEMINI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - GEMINI_SANDBOX_ROOT=/workspace
-      - GEMINI_SANDBOX_ENABLED=true
-      - GEMINI_ACTIVITY_LOG=true
       - GEMINI_LOG_DIR=/logs
-      - GEMINI_MAX_FILE_SIZE=102400
-
     volumes:
-      # User workspace (sandboxed)
-      - ./workspace:/workspace:rw
-      # Logs (persistent)
-      - ./logs:/logs:rw
-      # Backups (persistent)
-      - ./backups:/workspace/.gemini_backups:rw
-
+      - ./workspace:/workspace:rw     # files the tools may read and write (sandbox)
+      - omni-ai-mcp-logs:/logs:rw      # logs + SQLite conversation memory
     # Security constraints
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
-      - /tmp:size=100M
-
-    # Resource limits
+      - /tmp:size=512M                 # generated media default to /tmp
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
 
-    # Logging configuration
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Optional: Log viewer (enable with --profile monitoring)
-  logs-viewer:
-    image: amir20/dozzle:latest
-    container_name: gemini-logs-viewer
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    ports:
-      - "8080:8080"
-    profiles:
-      - monitoring
-    restart: unless-stopped
+volumes:
+  omni-ai-mcp-logs:

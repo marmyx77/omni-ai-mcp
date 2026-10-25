@@ -29,8 +29,10 @@ from ..core.config import config
 DB_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR  # 0o600
 
 
-# Database location
-DB_DIR = Path.home() / ".omni-ai-mcp"
+# Database location: GEMINI_LOG_DIR (default ~/.omni-ai-mcp), as documented.
+# Before v4.8.1 it ignored GEMINI_LOG_DIR and always used ~/.omni-ai-mcp, which
+# also broke read-only containers that mount a writable /logs volume.
+DB_DIR = Path(config.log_dir).expanduser()
 DB_PATH = DB_DIR / "conversations.db"
 
 # Configuration constants (exported for backward compatibility)

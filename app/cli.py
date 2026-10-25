@@ -28,7 +28,8 @@ def _write_json(path: Path, data: dict) -> None:
 def setup_claude() -> None:
     """Interactive setup wizard — configures claude.json for omni-ai-mcp."""
 
-    print("\nomni-ai-mcp v4.0.0 — Setup Wizard")
+    from . import __version__
+    print(f"\nomni-ai-mcp v{__version__} — Setup Wizard")
     print("=" * 40)
 
     # Find omni-ai-mcp entry point
@@ -87,12 +88,10 @@ def setup_claude() -> None:
 
     print("\nSetup complete!")
     print("Restart Claude Code to activate omni-ai-mcp.")
-    print("\nAvailable tools:")
-    print("  ask_gemini, ask_model, gemini_list_models, gemini_code_review,")
-    print("  gemini_brainstorm, gemini_challenge, gemini_web_search,")
-    print("  gemini_deep_research, gemini_analyze_codebase, gemini_generate_code,")
-    print("  gemini_generate_image, gemini_generate_video, gemini_text_to_speech,")
-    print("  gemini_file_search, and more (28 tools total)")
+    print("\nTools: text and reasoning (ask_gemini, ask_model, code review, brainstorm, challenge),")
+    print("  code (codebase analysis, generation, Antigravity agent), research (web search, Deep Research),")
+    print("  media (images, video, music, TTS and voices, transcription, image/video analysis),")
+    print("  embeddings, RAG and conversations: 28 tools. List them in Claude Code with /mcp.")
 
 
 if __name__ == "__main__":

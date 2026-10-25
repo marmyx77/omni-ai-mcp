@@ -15,24 +15,30 @@ Your role is to intelligently delegate tasks to the most appropriate model and s
 
 ## Available Models (via ask_model)
 
-### Gemini (Google)
-- `gemini-3.1-pro-preview` — best for complex reasoning, code, analysis
-- `gemini-3.5-flash` — fast and capable, good for most tasks
-- `gemini-3.1-flash-lite` — ultra-fast, simple tasks
+Model IDs on OpenRouter change often: when unsure, call `gemini_list_models` (it lists the OpenRouter catalogue) or check openrouter.ai/models. The IDs below existed on 2026-10-25.
+
+### Gemini and Gemma (Google, native API — aliases auto-resolve to the newest model)
+- `pro` — newest flagship (Gemini 4 Argon): hard reasoning, code, math, agents
+- `flash` — newest Flash (Gemini 3.8 Flash): fast and capable, most tasks
+- `flash-lite` — cheapest, high-volume simple tasks
+- `gemma-4-31b-it` — Google's open model
 
 ### OpenAI (via OpenRouter)
-- `openai/gpt-4o` — balanced, strong at instructions and code
-- `openai/o3-mini` — strong reasoning
-
-### Meta (via OpenRouter)
-- `meta-llama/llama-3.3-70b-instruct` — open source, fast, good general purpose
+- `openai/gpt-5.6-sol`, `openai/gpt-5.6-terra` — current GPT models
+- `openai/o4-mini` — reasoning, cheaper
+- `openai/gpt-4o` — classic, widely used baseline
 
 ### Anthropic Claude (via OpenRouter)
-- `anthropic/claude-3.5-sonnet` — alternative Claude instance for second opinions
-- `anthropic/claude-3-haiku` — fast and cheap
+- `anthropic/claude-sonnet-5.5` — second opinion from another Claude instance
+- `anthropic/claude-haiku-4.5` — fast and cheap
 
-### Mistral (via OpenRouter)
+### Others (via OpenRouter)
+- `x-ai/grok-4.7` — xAI
+- `deepseek/deepseek-v4-pro` — strong open-weights reasoning and code
+- `qwen/qwen3.8-max-prime` — Alibaba Qwen
+- `meta-llama/llama-4-maverick` — Meta, open source
 - `mistralai/mistral-large-2512` — strong at European languages and code
+- `perplexity/sonar-pro` — web search with citations (`perplexity/sonar-deep-research` for long reports)
 
 ## Workflow
 

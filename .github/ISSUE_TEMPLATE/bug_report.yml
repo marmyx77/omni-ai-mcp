@@ -1,0 +1,56 @@
+name: Bug report
+description: Something does not work as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Security problems go to a private advisory instead: see SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: omni-ai-mcp version
+      description: 'Output of `python -c "import app; print(app.__version__)"`, or the version shown by gemini_list_models / the .dxt'
+      placeholder: "4.8.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is it installed?
+      options:
+        - uvx (claude mcp add … -- uvx omni-ai-mcp)
+        - pip / omni-ai-mcp-setup
+        - Claude Desktop extension (.dxt)
+        - Claude Code plugin zip
+        - setup.sh from source
+        - scripts/install_release.sh
+        - Docker
+        - other
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool
+      placeholder: gemini_generate_video
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the arguments you passed (redact keys and private content) and the full message the tool returned.
+    validations:
+      required: true
+  - type: textarea
+    id: models
+    attributes:
+      label: Model resolution (if a model is involved)
+      description: Paste the output of the `gemini_list_models` tool.
+      render: text
+  - type: input
+    id: env
+    attributes:
+      label: OS, Python version, MCP client
+      placeholder: "macOS 15, Python 3.12, Claude Code 2.x"

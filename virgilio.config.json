@@ -1,6 +1,6 @@
 {
   "$schema": "./virgilio/schema/virgilio.config.schema.json",
-  "_README": "virgilio's config: the SSOT for what the docs-reality gate enforces. Changing the repo's reality without updating this file (or vice versa) makes the gate fail — that's intentional. Notes: (1) CHANGELOG.md is fully historical; (2) README from '## Changelog' and DEVELOPMENT_ROADMAP from '## Version History' are historical zones (the short Contributing/License sections after README's Changelog are accepted as exempt — no status claims live there); (3) no guards: the release flow is tag→PyPI (external tier), not probeable via remote-tracking refs — deploy honesty is audited in §9; (4) the MCP tool count (28) is NOT mechanized: tool files (23) ≠ @mcp.tool registrations (28), and a wrong-proxy rule is worse than none — it stays with the §9 audit; (5) DEVELOPMENT_ROADMAP.md is git-ignored ('internal development files'): it stays in docsGlobs/historicalSections for LOCAL coverage (in CI it simply doesn't exist → fewer files scanned), but it must NOT be in statusDocs (a missing statusDoc is a Finding → red CI). The CI-enforced status doc is CLAUDE.md.",
+  "_README": "virgilio's config: the SSOT for what the docs-reality gate enforces. Changing the repo's reality without updating this file (or vice versa) makes the gate fail — that's intentional. Notes: (1) CHANGELOG.md is fully historical; (2) DEVELOPMENT_ROADMAP from '## Version History' is a historical zone; the README has no changelog since v4.8.1 (release notes live only in CHANGELOG.md, per SSOT); (3) no guards: the release flow is tag→PyPI (external tier), not probeable via remote-tracking refs — deploy honesty is audited in §9; (4) the MCP tool count (28) is NOT mechanized: tool files (23) ≠ @mcp.tool registrations (28), and a wrong-proxy rule is worse than none — it stays with the §9 audit; (5) DEVELOPMENT_ROADMAP.md is git-ignored ('internal development files'): it stays in docsGlobs/historicalSections for LOCAL coverage (in CI it simply doesn't exist → fewer files scanned), but it must NOT be in statusDocs (a missing statusDoc is a Finding → red CI). The CI-enforced status doc is CLAUDE.md.",
 
   "root": ".",
   "docsGlobs": [
@@ -41,8 +41,7 @@
 
   "historicalPaths": ["CHANGELOG.md"],
   "historicalSections": [
-    { "file": "DEVELOPMENT_ROADMAP.md", "fromHeadingRegex": "^##\\s+Version History" },
-    { "file": "README.md", "fromHeadingRegex": "^##\\s+Changelog" }
+    { "file": "DEVELOPMENT_ROADMAP.md", "fromHeadingRegex": "^##\\s+Version History" }
   ],
 
   "guards": [],
