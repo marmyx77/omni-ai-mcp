@@ -9,6 +9,7 @@ import time
 from typing import Optional
 
 from ...tools.registry import tool
+from ...core.security import safe_input_path
 from ...services import client
 from ...core import log_progress
 
@@ -89,8 +90,12 @@ UPLOAD_FILE_SCHEMA = {
 )
 def upload_file(file_path: str, store_name: str) -> str:
     """Upload file to File Search Store."""
-    if not os.path.exists(file_path):
-        return f"Error: File not found: {file_path}"
+    try:
+        file_path = safe_input_path(file_path)   # sandbox + credentials policy: this file is uploaded to Google
+    except ValueError as e:
+        if "not found" in str(e):
+            return f"Error: File not found: {file_path}"
+        return f"Error: {e}"
 
     # Resolve short name to full path
     try:

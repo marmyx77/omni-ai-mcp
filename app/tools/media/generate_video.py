@@ -71,7 +71,7 @@ GENERATE_VIDEO_SCHEMA = {
             "type": "string",
             "description": "interaction_id of a generation that timed out: fetch and save its video (waits if still running). Other inputs are ignored."
         },
-        "output_path": {"type": "string", "description": "Where to save the .mp4 (default /tmp)."},
+        "output_path": {"type": "string", "description": "Where to save the .mp4, inside the workspace (default: a private temp folder, or GEMINI_OUTPUT_DIR)."},
         "max_wait_minutes": {"type": "integer", "minimum": 1, "maximum": 30, "default": 10}
     },
     "required": ["prompt"]

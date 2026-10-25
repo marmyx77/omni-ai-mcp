@@ -126,8 +126,11 @@ class TestTool:
         audio.write_bytes(b"RIFF....WAVEfmt ")
         return calls, audio, tmp_path
 
-    def test_missing_file(self, fake):
-        assert transcribe_audio("/nope/x.wav").startswith("Error: audio file not found")
+    def test_missing_file(self, fake, tmp_path):
+        assert transcribe_audio(str(tmp_path / "nope.wav")).startswith("Error: audio file not found")
+
+    def test_path_outside_sandbox_is_refused(self, fake):
+        assert "outside allowed directory" in transcribe_audio("/etc/x.wav")
 
     def test_unsupported_format(self, fake, tmp_path):
         bad = tmp_path / "a.txt"; bad.write_text("x")

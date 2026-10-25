@@ -235,7 +235,7 @@ def gemini_generate_image(
         thinking_level: auto, minimal, medium or high
 
     Returns:
-        Path to the saved image (or a base64 preview)
+        Path to the saved image
     """
     return generate_image(
         prompt=prompt,

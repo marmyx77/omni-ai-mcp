@@ -16,6 +16,7 @@ from typing import Optional, List
 from ...tools.registry import tool
 from ...services import types, IMAGE_MODELS, client
 from ...core import log_progress
+from ...core.security import safe_input_path, safe_output_path, default_output_path
 
 
 GENERATE_IMAGE_SCHEMA = {
@@ -61,7 +62,7 @@ GENERATE_IMAGE_SCHEMA = {
         },
         "output_path": {
             "type": "string",
-            "description": "Path to save image (optional, returns base64 preview if not provided)."
+            "description": "Where to save the image, inside the workspace (default: a private temp folder, or GEMINI_OUTPUT_DIR)."
         }
     },
     "required": ["prompt"]
@@ -79,7 +80,8 @@ def resolve_image_size(model: str, image_size: str) -> Optional[str]:
 
 
 def _load_image_part(image_path: str) -> types.Part:
-    """Load an image file and return a Gemini Part."""
+    """Load an image file (sandbox + credentials policy) and return a Gemini Part."""
+    image_path = safe_input_path(image_path, allowed_extensions={".png", ".jpg", ".jpeg", ".webp"})
     ext = os.path.splitext(image_path)[1].lower()
     mime_types = {
         ".png": "image/png",
@@ -160,11 +162,11 @@ def generate_image(
             return f"Error: at most {MAX_REFERENCE_IMAGES} input images"
         if input_images:
             contents = []
-            missing = [p for p in input_images if not os.path.exists(p)]
-            if missing:
-                return f"Error: Input image(s) not found: {', '.join(missing)}"
             for img_path in input_images:
-                contents.append(_load_image_part(img_path))
+                try:
+                    contents.append(_load_image_part(img_path))
+                except ValueError as e:
+                    return f"Error: {e}"
             contents.append(prompt)
             mode = f"image editing ({len(input_images)} input image(s))"
         else:
@@ -193,24 +195,22 @@ def generate_image(
                     ext = ".webp"
 
                 if output_path:
-                    if not output_path.endswith(ext):
-                        output_path = output_path.rsplit('.', 1)[0] + ext
-                    with open(output_path, 'wb') as f:
-                        f.write(image_data)
-                    return (
-                        f"Image saved to: {output_path}\n"
-                        f"Model: {model_id} | Mode: {mode}\n"
-                        f"Aspect ratio: {aspect_ratio}"
-                    )
+                    if not output_path.lower().endswith(ext):
+                        output_path = os.path.splitext(output_path)[0] + ext
+                    try:
+                        output_path = safe_output_path(output_path, {ext})
+                    except ValueError as e:
+                        return f"Error: {e}"
                 else:
-                    b64 = base64.b64encode(image_data).decode('utf-8')
-                    return (
-                        f"Generated image ({mime_type})\n"
-                        f"Model: {model_id} | Mode: {mode}\n"
-                        f"Aspect ratio: {aspect_ratio}\n"
-                        f"Base64 (first 100 chars): {b64[:100]}...\n"
-                        f"Total size: {len(b64)} characters"
-                    )
+                    # Saved privately instead of returning a truncated base64 the caller can't use
+                    output_path = default_output_path("gemini_image", ext)
+                with open(output_path, 'wb') as f:
+                    f.write(image_data)
+                return (
+                    f"Image saved to: {output_path}\n"
+                    f"Model: {model_id} | Mode: {mode}\n"
+                    f"Aspect ratio: {aspect_ratio}"
+                )
 
         text_parts = [p.text for p in response.candidates[0].content.parts if hasattr(p, 'text') and p.text]
         if text_parts:

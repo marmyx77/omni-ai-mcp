@@ -16,6 +16,8 @@ import glob as glob_module
 from typing import List, Tuple
 
 from .line_numbers import add_line_numbers, should_add_line_numbers
+from ..core.config import config
+from ..core.security import validate_path, sensitive_reason, glob_root_allowed
 
 
 # Limits
@@ -36,7 +38,7 @@ def expand_file_references(text: str, base_dir: str = None) -> str:
 
     Args:
         text: Text containing @file references
-        base_dir: Base directory for relative paths (default: cwd)
+        base_dir: Base directory for relative paths (default: the sandbox root)
 
     Returns:
         Text with file references replaced by contents
@@ -44,7 +46,7 @@ def expand_file_references(text: str, base_dir: str = None) -> str:
     if not text or '@' not in text:
         return text
 
-    base_dir = base_dir or os.getcwd()
+    base_dir = base_dir or config.sandbox_root
 
     # Pattern to match @references but not emails
     # Matches: @file.py, @src/main.py, @*.py, @., @src
@@ -68,16 +70,21 @@ def expand_file_references(text: str, base_dir: str = None) -> str:
 
 
 def _expand_single_ref(ref: str, base_dir: str) -> str:
-    """Expand a single @reference."""
-    path = os.path.join(base_dir, ref)
+    """Expand a single @reference (sandbox + credentials policy enforced)."""
+    raw = os.path.join(base_dir, ref)
+
+    # Glob patterns are checked match by match
+    if '*' in ref:
+        return _expand_glob(ref, base_dir)
+
+    try:
+        path = validate_path(raw)
+    except ValueError as e:
+        return f"[@{ref} not included: {e}]"
 
     # Check if it's a directory listing request
     if ref == '.' or os.path.isdir(path):
-        return _list_directory(path if ref != '.' else base_dir, ref)
-
-    # Check if it's a glob pattern
-    if '*' in ref:
-        return _expand_glob(ref, base_dir)
+        return _list_directory(path, ref)
 
     # Single file
     if os.path.isfile(path):
@@ -115,10 +122,21 @@ def _read_file(path: str, ref: str, max_size: int) -> str:
 def _expand_glob(pattern: str, base_dir: str) -> str:
     """Expand glob pattern to multiple files."""
     full_pattern = os.path.join(base_dir, pattern)
+    # Check the fixed prefix first: "@/**/*" must not walk the whole disk
+    if not glob_root_allowed(full_pattern):
+        return f"[@{pattern} not included: Access denied: path is outside allowed directory]"
     matches = sorted(glob_module.glob(full_pattern, recursive=True))
 
-    # Filter to files only and limit
-    files = [m for m in matches if os.path.isfile(m)][:MAX_GLOB_FILES]
+    # Keep only files the policy allows (inside the sandbox, not credentials), then limit
+    allowed = []
+    for m in matches:
+        try:
+            resolved = validate_path(m)
+        except ValueError:
+            continue
+        if os.path.isfile(resolved):
+            allowed.append(resolved)
+    files = allowed[:MAX_GLOB_FILES]
 
     if not files:
         return f"[No files match: @{pattern}]"
@@ -137,7 +155,7 @@ def _expand_glob(pattern: str, base_dir: str) -> str:
 def _list_directory(path: str, ref: str) -> str:
     """List directory contents."""
     try:
-        entries = sorted(os.listdir(path))
+        entries = sorted(e for e in os.listdir(path) if not sensitive_reason(os.path.join(path, e)))
         dirs = [e + '/' for e in entries if os.path.isdir(os.path.join(path, e))]
         files = [e for e in entries if os.path.isfile(os.path.join(path, e))]
 

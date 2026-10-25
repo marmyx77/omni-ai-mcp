@@ -14,10 +14,12 @@ fakes used by the unit tests.
 import base64
 import os
 import re
+from urllib.parse import urljoin
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..core import log_progress
+from ..core.security import safe_input_path, safe_output_path, default_output_path
 
 INLINE_LIMIT_BYTES = 15 * 1024 * 1024    # above this, upload through the Files API (request cap is 20 MB)
 FILE_ACTIVE_TIMEOUT_SECONDS = 300
@@ -42,6 +44,8 @@ MIME_BY_EXT: Dict[str, str] = {
 }
 
 EXT_BY_MIME: Dict[str, str] = {
+    "application/pdf": ".pdf", "text/plain": ".txt", "text/markdown": ".md", "text/csv": ".csv",
+    "application/json": ".json", "text/html": ".html",
     "video/mp4": ".mp4", "video/webm": ".webm", "video/mov": ".mov",
     "audio/mp3": ".mp3", "audio/mpeg": ".mp3", "audio/wav": ".wav", "audio/ogg": ".ogg",
     "audio/flac": ".flac", "audio/aac": ".aac", "audio/m4a": ".m4a",
@@ -99,18 +103,22 @@ def _state(uploaded: Any) -> str:
 
 
 def upload_and_wait(path: str, mime: str) -> Any:
-    """Upload through the Files API and wait until the file is ACTIVE."""
+    """Upload through the Files API and wait until the file is ACTIVE (deleted again on failure)."""
     client = _client()
     uploaded = client.files.upload(file=path, config={"mime_type": mime})
-    deadline = time.time() + FILE_ACTIVE_TIMEOUT_SECONDS
-    while _state(uploaded) not in ("ACTIVE", "FAILED", "") and time.time() < deadline:
-        time.sleep(2)
-        uploaded = client.files.get(name=uploaded.name)
-    if _state(uploaded) == "FAILED":
-        raise RuntimeError(f"Files API failed to process {os.path.basename(path)}")
-    if _state(uploaded) not in ("ACTIVE", ""):
-        raise RuntimeError(f"Files API did not finish processing {os.path.basename(path)} in time")
-    return uploaded
+    try:
+        deadline = time.time() + FILE_ACTIVE_TIMEOUT_SECONDS
+        while _state(uploaded) not in ("ACTIVE", "FAILED", "") and time.time() < deadline:
+            time.sleep(2)
+            uploaded = client.files.get(name=uploaded.name)
+        if _state(uploaded) == "FAILED":
+            raise RuntimeError(f"Files API failed to process {os.path.basename(path)}")
+        if _state(uploaded) not in ("ACTIVE", ""):
+            raise RuntimeError(f"Files API did not finish processing {os.path.basename(path)} in time")
+        return uploaded
+    except Exception:
+        cleanup([getattr(uploaded, "name", None)])
+        raise
 
 
 def file_block(path: str, force_upload: bool = False, **extra: Any) -> Tuple[Dict[str, Any], Optional[str]]:
@@ -120,8 +128,10 @@ def file_block(path: str, force_upload: bool = False, **extra: Any) -> Tuple[Dic
     Returns (block, uploaded_name). Delete uploaded_name with cleanup() when done.
     Extra keys (e.g. processing="agentic", resolution="high") are added to the block.
     """
+    # Sandbox + credentials policy: everything read here may leave the machine
+    path = safe_input_path(path, allowed_extensions=set(MIME_BY_EXT))
     if not os.path.isfile(path):
-        raise FileNotFoundError(path)
+        raise ValueError(f"not a file: {os.path.basename(path)}")
     mime = mime_for(path)
     kind = kind_for(mime)
     size = os.path.getsize(path)
@@ -220,14 +230,36 @@ def output_media(interaction: Any, kind: str) -> Optional[Any]:
     return found or _get(interaction, f"output_{kind}")
 
 
+_FILES_URI = re.compile(r"^https://generativelanguage\.googleapis\.com/(?:v1beta|v1alpha|v1)/(files/[A-Za-z0-9_-]+)")
+_GOOGLE_HOSTS = (".googleapis.com", ".googleusercontent.com")
+
+
+def _is_google_https(uri: str) -> bool:
+    from urllib.parse import urlparse
+    parsed = urlparse(uri)
+    host = (parsed.hostname or "").lower()
+    return parsed.scheme == "https" and any(host == h[1:] or host.endswith(h) for h in _GOOGLE_HOSTS)
+
+
 def _download_uri(uri: str) -> bytes:
+    """
+    Download media delivered by URI. The API key is only ever sent to Google
+    hosts over HTTPS, and never forwarded across a redirect.
+    """
     client = _client()
-    match = re.search(r"(files/[A-Za-z0-9_-]+)", uri)
+    match = _FILES_URI.match(uri)
     if match:
         return client.files.download(file=match.group(1))
+    if not _is_google_https(uri):
+        raise ValueError("refusing to download media from a non-Google URL")
     import httpx
     from ..core import config
-    resp = httpx.get(uri, headers={"x-goog-api-key": config.api_key}, timeout=300, follow_redirects=True)
+    resp = httpx.get(uri, headers={"x-goog-api-key": config.api_key}, timeout=300, follow_redirects=False)
+    if resp.is_redirect:
+        location = urljoin(uri, resp.headers.get("location", ""))   # relative redirects too
+        if not _is_google_https(location):
+            raise ValueError("media redirect points outside Google: not followed")
+        resp = httpx.get(location, timeout=300, follow_redirects=True)   # no API key on the redirect
     resp.raise_for_status()
     return resp.content
 
@@ -245,12 +277,15 @@ def media_bytes(item: Any) -> bytes:
 def save_media(item: Any, output_path: Optional[str], default_stem: str) -> Tuple[str, int]:
     """Write a media item to disk; fix the extension to match its MIME type. Returns (path, bytes)."""
     mime = _get(item, "mime_type") or ""
-    ext = EXT_BY_MIME.get(mime, os.path.splitext(output_path or "")[1] or ".bin")
+    ext = EXT_BY_MIME.get(mime) or os.path.splitext(output_path or "")[1].lower() or ".bin"
+    if ext not in set(EXT_BY_MIME.values()):
+        ext = ".bin"
     if not output_path:
-        output_path = f"/tmp/{default_stem}_{int(time.time())}{ext}"
-    elif not output_path.lower().endswith(ext):
-        output_path = os.path.splitext(output_path)[0] + ext
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        output_path = default_output_path(default_stem, ext)
+    else:
+        if not output_path.lower().endswith(ext):
+            output_path = os.path.splitext(output_path)[0] + ext
+        output_path = safe_output_path(output_path, {ext})
     payload = media_bytes(item)
     with open(output_path, "wb") as fh:
         fh.write(payload)

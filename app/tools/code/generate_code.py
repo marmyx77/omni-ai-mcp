@@ -13,7 +13,7 @@ import defusedxml.ElementTree as ET
 
 from ...tools.registry import tool
 from ...services import types, MODELS, generate_with_fallback
-from ...core.security import validate_path
+from ...core.security import validate_path, write_protected_reason
 from ...utils.file_refs import expand_file_references
 from ...utils.tokens import check_prompt_size
 from ...core import config
@@ -146,8 +146,11 @@ def save_generated_files(files: List[Dict[str, str]], output_dir: str) -> List[D
             # Construct full path
             full_path = os.path.join(output_dir, rel_path)
 
-            # Validate path is within sandbox
+            # Validate path is within sandbox, and never an agent-instruction or hook file
             validated_path = validate_path(full_path)
+            protected = write_protected_reason(validated_path)
+            if protected:
+                raise ValueError(f"Access denied: {protected}")
 
             # Create directories if needed
             dir_path = os.path.dirname(validated_path)
@@ -432,7 +435,7 @@ You now have the additional files you requested. Return ONLY the <GENERATED_CODE
         # Auto-save if output_dir is specified (or dry-run preview)
         if output_dir or dry_run:
             try:
-                target_dir = output_dir or os.getcwd()
+                target_dir = output_dir or config.sandbox_root
                 validated_dir = validate_path(target_dir)
 
                 files = parse_generated_code(result)

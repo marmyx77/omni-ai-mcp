@@ -36,6 +36,10 @@ def main() -> int:
         print("GEMINI_API_KEY is not set")
         return 2
 
+    # Outputs go to a temp folder: make it the sandbox root before the config loads
+    out = tempfile.mkdtemp(prefix="omni_smoke_")
+    os.environ["GEMINI_SANDBOX_ROOT"] = out
+
     from app import __version__
     from app.tools.text.models import list_models
     from app.tools.text.ask_gemini import ask_gemini
@@ -53,7 +57,6 @@ def main() -> int:
     from app.tools.web.deep_research import deep_research
     from app.tools.web.agent_task import agent_task
 
-    out = tempfile.mkdtemp(prefix="omni_smoke_")
     img = os.path.join(out, "img.png")   # the tool fixes the extension to the returned MIME type (often .jpg)
 
     def saved_image() -> str:
@@ -94,6 +97,15 @@ def main() -> int:
         ("agent", True, lambda: agent_task("Compute 2**64 with Python and report the number.", tools=["code_execution"],
                                            max_wait_minutes=10), "18446744073709551616"),
     ]
+    if os.environ.get("OPENROUTER_API_KEY"):
+        checks += [
+            ("openrouter", False, lambda: ask_model("Reply with the single word OK.", model="openai/gpt-4o-mini"), "OK"),
+            ("or_google", False, lambda: ask_model("Reply with the single word OK.", model="flash",
+                                                   provider="openrouter"), "OK"),
+            # An error is the expected outcome here: prefixed so the generic "Error" check doesn't fail it
+            ("or_bad_id", False, lambda: "expected: " + ask_model("hi", model="nobody/no-such-model-xyz"),
+             "gemini_list_models"),
+        ]
     only = {c.strip() for c in args.only.split(",") if c.strip()}
     failures = 0
     print(f"omni-ai-mcp {__version__} — live smoke test → {out}\n")

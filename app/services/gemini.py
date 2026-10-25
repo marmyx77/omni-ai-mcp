@@ -6,6 +6,7 @@ It handles client initialization, model mappings, and API calls with fallback.
 """
 
 import os
+import re
 from collections.abc import Mapping
 from typing import Any, Dict, Iterator, Optional
 
@@ -133,7 +134,10 @@ try:
     if not API_KEY or API_KEY == "YOUR_API_KEY_HERE":
         _error = "Please set GEMINI_API_KEY environment variable"
     else:
-        client = genai.Client(api_key=API_KEY)
+        client = genai.Client(
+            api_key=API_KEY,
+            http_options=genai_types.HttpOptions(timeout=config.request_timeout * 1000),  # ms
+        )
         _available = True
 except ImportError:
     _error = "google-genai SDK not installed. Run: pip install google-genai"
@@ -151,50 +155,70 @@ def get_error() -> Optional[str]:
     return _error
 
 
+_QUOTA_PATTERN = re.compile(
+    r"\b(?:resource[_ ]exhausted|quota|rate[ -]?limit(?:ed|s)?|too many requests)\b", re.IGNORECASE
+)
+
+
+def is_quota_error(exc: BaseException) -> bool:
+    """True for a per-model quota / rate-limit error (HTTP 429), the only case a Flash retry helps.
+
+    A project spending cap is also a 429 but blocks every model, so it is excluded.
+    """
+    message = str(exc)
+    if "spending cap" in message.lower():
+        return False
+    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if code == 429:
+        return True
+    return bool(_QUOTA_PATTERN.search(message))
+
+
+def _generate(model_id: str, contents: Any, config: Any) -> Any:
+    if config:
+        return client.models.generate_content(model=model_id, contents=contents, config=config)
+    return client.models.generate_content(model=model_id, contents=contents)
+
+
 def generate_with_fallback(
     model_id: str,
     contents: Any,
     config: Any = None,
-    operation: str = "request"
+    operation: str = "request",
+    allow_fallback: bool = True,
 ) -> Any:
     """
-    Call Gemini API with automatic fallback from Pro to Flash on quota errors.
+    Call Gemini API, retrying once on Flash when the model hits a quota / rate limit.
 
     Args:
-        model_id: The model to use (e.g., "gemini-3-pro-preview")
+        model_id: The model to use (e.g., "gemini-4-argon")
         contents: The content to send to the model
         config: Optional GenerateContentConfig
         operation: Description of the operation for logging
+        allow_fallback: False when the caller asked for this exact model: then a
+            quota error is raised instead of silently answering with another model
 
     Returns:
         The API response
 
     Raises:
-        Exception: If both Pro and Flash fail
+        Exception: the original error, or both errors if the Flash retry also fails
     """
     if not _available:
         raise RuntimeError(_error or "Gemini client not initialized")
 
     try:
-        if config:
-            return client.models.generate_content(model=model_id, contents=contents, config=config)
-        else:
-            return client.models.generate_content(model=model_id, contents=contents)
+        return _generate(model_id, contents, config)
     except Exception as e:
-        error_msg = str(e).lower()
-        # Check for quota/rate limit errors and if we're using a Pro model
         flash_model = MODELS["flash"]
-        spending_cap = "spending cap" in error_msg
-        if ("quota" in error_msg or "rate" in error_msg or "resource" in error_msg) \
-                and model_id != flash_model and not spending_cap:
-            log_progress(f"{operation}: {model_id} quota exceeded, falling back to {flash_model}...")
-            try:
-                if config:
-                    response = client.models.generate_content(model=flash_model, contents=contents, config=config)
-                else:
-                    response = client.models.generate_content(model=flash_model, contents=contents)
-                log_progress(f"{operation}: Completed with Flash fallback")
-                return response
-            except Exception as fallback_error:
-                raise Exception(f"Both {model_id} and {flash_model} failed. First error: {str(e)}. Fallback error: {str(fallback_error)}")
-        raise
+        if not (allow_fallback and is_quota_error(e) and model_id != flash_model):
+            raise
+        log_progress(f"{operation}: {model_id} quota exceeded, falling back to {flash_model}...")
+        try:
+            response = _generate(flash_model, contents, config)
+        except Exception as fallback_error:
+            raise Exception(
+                f"Both {model_id} and {flash_model} failed. First error: {e}. Fallback error: {fallback_error}"
+            ) from fallback_error
+        log_progress(f"{operation}: Completed with Flash fallback")
+        return response

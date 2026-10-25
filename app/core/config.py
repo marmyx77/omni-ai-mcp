@@ -8,6 +8,30 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 
+WORKSPACE_FALLBACK = os.path.join("~", "omni-ai-workspace")
+
+
+def _default_sandbox_root() -> str:
+    """
+    GEMINI_SANDBOX_ROOT, else the directory the server was started in — unless
+    that is "/" or the home folder (Claude Desktop and some clients start servers
+    there), which would expose the whole disk: then ~/omni-ai-workspace.
+    """
+    explicit = os.environ.get("GEMINI_SANDBOX_ROOT", "").strip()
+    if explicit:
+        return os.path.realpath(os.path.expanduser(explicit))
+    cwd = os.path.realpath(os.getcwd())
+    home = os.path.realpath(os.path.expanduser("~"))
+    if cwd in ("/", home) or cwd == os.path.dirname(home):
+        workspace = os.path.realpath(os.path.expanduser(WORKSPACE_FALLBACK))
+        try:
+            os.makedirs(workspace, exist_ok=True)
+        except OSError:
+            pass
+        return workspace
+    return cwd
+
+
 @dataclass
 class Config:
     """
@@ -17,7 +41,7 @@ class Config:
     """
 
     # Version
-    version: str = "4.8.1"
+    version: str = "4.8.2"
 
     # API Configuration
     api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
@@ -101,6 +125,11 @@ class Config:
     openrouter_default_model: str = field(
         default_factory=lambda: os.environ.get("OPENROUTER_DEFAULT_MODEL", "openai/gpt-4o")
     )
+    request_timeout: int = field(
+        # Per-request HTTP timeout for the Gemini client, in seconds (a hung call
+        # would otherwise block the MCP tool forever). Long jobs poll, so 15 min is ample.
+        default_factory=lambda: int(os.environ.get("GEMINI_REQUEST_TIMEOUT", "900"))
+    )
     openrouter_timeout: int = field(
         default_factory=lambda: int(os.environ.get("OPENROUTER_TIMEOUT", "120"))
     )
@@ -114,11 +143,12 @@ class Config:
     )
 
     # Security - Sandboxing
-    sandbox_root: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_SANDBOX_ROOT", os.getcwd())
-    )
+    sandbox_root: str = field(default_factory=lambda: _default_sandbox_root())
     sandbox_enabled: bool = field(
         default_factory=lambda: os.environ.get("GEMINI_SANDBOX_ENABLED", "true").lower() == "true"
+    )
+    output_dir: str = field(
+        default_factory=lambda: os.path.expanduser(os.environ.get("GEMINI_OUTPUT_DIR", "").strip())
     )
     max_file_size_bytes: int = field(
         default_factory=lambda: int(os.environ.get("GEMINI_MAX_FILE_SIZE", str(100 * 1024)))

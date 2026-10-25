@@ -41,7 +41,7 @@ app/
 - **Never hardcode a model ID in a tool.** Ask the registry for a category: `MODELS["pro"]`, `IMAGE_MODELS["flash"]`, `model_registry.resolve("music")`. New family → new entry in `CATEGORY_SPECS` with anchored patterns, fallbacks, an env var and a config default.
 - **Don't send sampling parameters to Gemini 3+.** Use `legacy_sampling(model_id, temperature)`; budgets come from `config.max_output_tokens`.
 - **Interactions API tools** (video, music, TTS, agents, video analysis) use `app/services/interactions.py`: `file_block` for inputs, `run`/`wait` for execution (background + polling), `output_text`/`output_media`/`save_media` for results. Long jobs must offer a way to retrieve the result after a timeout.
-- **Files go through the sandbox** (`validate_path`, `secure_read_file`, `secure_write_file`).
+- **Files go through the sandbox**: `safe_input_path` for anything a tool reads or uploads, `safe_output_path` / `default_output_path` for anything it writes (`app/core/security.py`). Never open a user-supplied path directly.
 - **Errors are returned, not raised**, as a short message that names what failed and what to do.
 - Python 3.10+, type hints on public functions, Google-style docstrings, small functions, immutable data where practical.
 

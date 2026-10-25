@@ -125,37 +125,40 @@ class TestAskModelRouting:
 
         assert "No API key" in result or "Error" in result
 
-    def test_gemini_model_overrides_openrouter_provider(self):
-        """Gemini model ID always uses Gemini API, even if provider='openrouter' is forced."""
+    def test_openrouter_provider_sends_gemini_id_to_openrouter(self):
+        """provider='openrouter' is honoured even for Gemini IDs: they become google/<id>."""
         from app.tools.text.ask_model import ask_model
 
-        mock_resp = self._mock_gemini("Gemini wins")
-        mock_or = MagicMock()
+        mock_or = MagicMock(is_available=True)
+        mock_or.generate.return_value = "via OpenRouter"
 
-        with patch("app.tools.text.ask_model.generate_with_fallback", return_value=mock_resp), \
+        with patch("app.tools.text.ask_model.generate_with_fallback") as native, \
              patch("app.tools.text.ask_model.is_available", return_value=True), \
              patch("app.tools.text.ask_model.openrouter_client", mock_or):
             result = ask_model(
                 prompt="hello", model="gemini-3.1-pro-preview", provider="openrouter"
             )
 
-        mock_or.generate.assert_not_called()
-        assert result == "Gemini wins"
+        native.assert_not_called()
+        assert mock_or.generate.call_args.kwargs["model"] == "google/gemini-3.1-pro-preview"
+        assert result == "via OpenRouter"
 
-    def test_short_name_overrides_openrouter_provider(self):
-        """Short alias 'pro' always uses Gemini API, even if provider='openrouter'."""
+    def test_openrouter_provider_resolves_alias_to_google_id(self):
+        """provider='openrouter' + alias 'pro' → google/<newest pro>, never the native API."""
         from app.tools.text.ask_model import ask_model
 
-        mock_resp = self._mock_gemini("Gemini Pro")
-        mock_or = MagicMock()
+        mock_or = MagicMock(is_available=True)
+        mock_or.generate.return_value = "Pro via OpenRouter"
 
-        with patch("app.tools.text.ask_model.generate_with_fallback", return_value=mock_resp), \
+        with patch("app.tools.text.ask_model.generate_with_fallback") as native, \
              patch("app.tools.text.ask_model.is_available", return_value=True), \
+             patch("app.tools.text.ask_model._resolve_gemini_model", return_value="gemini-4-argon"), \
              patch("app.tools.text.ask_model.openrouter_client", mock_or):
             result = ask_model(prompt="hello", model="pro", provider="openrouter")
 
-        mock_or.generate.assert_not_called()
-        assert result == "Gemini Pro"
+        native.assert_not_called()
+        assert mock_or.generate.call_args.kwargs["model"] == "google/gemini-4-argon"
+        assert result == "Pro via OpenRouter"
 
     def test_provider_gemini_with_non_gemini_model_returns_error(self):
         """provider='gemini' + non-Gemini model → error message."""

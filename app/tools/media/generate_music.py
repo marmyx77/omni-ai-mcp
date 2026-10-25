@@ -37,7 +37,7 @@ GENERATE_MUSIC_SCHEMA = {
             "type": "string", "enum": ["full", "clip"], "default": "full",
             "description": "full: newest Lyria, full-length songs. clip: 30-second clip."
         },
-        "output_path": {"type": "string", "description": "Where to save the .mp3 (default /tmp)."},
+        "output_path": {"type": "string", "description": "Where to save the .mp3, inside the workspace (default: a private temp folder, or GEMINI_OUTPUT_DIR)."},
         "retrieve_id": {"type": "string", "description": "interaction_id of a generation that timed out: fetch and save it (waits if still running)."},
         "max_wait_minutes": {"type": "integer", "minimum": 1, "maximum": 30, "default": 10}
     },

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.2] - 2026-10-25
+
+Security release. Upgrade if you use `@file` references, `gemini_analyze_codebase` or any tool that takes a file path.
+
+### Security
+- **Files outside the workspace could be sent to Google.** `@file` references (in `ask_gemini` and the other text tools) and `gemini_analyze_codebase` did not apply the sandbox, so an absolute path or a glob could include any file you can read, for example after a prompt injection in a page or document the model was reading. Every reference, glob match and walked file now goes through `validate_path`.
+- **Credentials deny-list**: `~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.kube`, `~/.docker`, `~/.claude`, `~/.claude.json`, `.env*`, `*.pem`, `*.key`, `id_*` keys, `.netrc`, `.npmrc`, `.pypirc`, cloud CLI configs and similar are refused by every tool **even with `GEMINI_SANDBOX_ENABLED=false`**, and hidden from `@dir` listings.
+- **Default workspace is never the whole disk**: without `GEMINI_SANDBOX_ROOT`, a server started in `/` or in the home folder (Claude Desktop) now uses `~/omni-ai-workspace`. The Desktop extension gains an optional *Workspace folder* setting.
+- **Media and document inputs** (images, audio, video, voices, embeddings, RAG uploads, Interactions file inputs) are validated against the workspace, an extension allowlist and existence before upload. Uploaded files are deleted from Google if processing fails.
+- **Outputs** need an allowed extension, never go through a symlink and must stay in the workspace; without `output_path` they go to a private `0700` folder with unpredictable names instead of predictable names in `/tmp` (`GEMINI_OUTPUT_DIR` to change).
+- **Agent instructions and hooks are never written**: no tool, `gemini_generate_code` included, writes `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.mcp.json` or anything under `.git/`, `.claude/`, `.vscode/`, `.idea/`, `.husky/`, `.cursor/`, so a prompt-injected path cannot plant persistent instructions or a commit hook.
+- The credentials deny-list ignores letter case (`~/.SSH` is `~/.ssh` on macOS); globs are checked on their fixed prefix before walking, so `@/**/*` is refused instead of scanning the disk.
+- **Media downloads** send the API key only to Google hosts over HTTPS and never across a redirect.
+- **Installers**: `setup.sh` writes `~/.claude.json` directly instead of passing keys to `claude mcp add` on the command line (visible in the process list); `setup.sh`, `install_release.sh` and `omni-ai-mcp-setup` write it atomically with mode `600`, and backups are owner-only.
+- **CI**: actions pinned to commit SHAs, read-only default token; the publish workflow is split so the PyPI job holds only the OIDC token and the release job only `contents: write`.
+- OpenRouter keys (`sk-or-v1-…`) and project-scoped OpenAI keys are masked; upstream error bodies are truncated and sanitized before being returned.
+
+### Fixed
+- **Flash fallback triggered on unrelated errors**: any message containing "rate" (for example "generateContent") or "resource" switched to Flash and hid the real error. Only HTTP 429 / `RESOURCE_EXHAUSTED` / quota and rate-limit messages fall back now, spending caps never, and an explicit model ID is never swapped (aliases still are).
+- `gemini_generate_image` without `output_path` returned a truncated base64 string the caller could not use: the image is now saved in the private output folder and its path returned. Generated files can be passed straight to other tools.
+- `gemini_generate_code` defaulted to the process working directory instead of the workspace.
+- **`ask_model` ignored `provider="openrouter"`** for Gemini IDs and aliases: they now go to OpenRouter as `google/<id>`, and no model means `OPENROUTER_DEFAULT_MODEL`. An empty model string means the default; an empty Gemini answer is reported instead of returning nothing.
+- **OpenRouter**: rate limits (429) and 503 are retried twice with backoff (honouring `Retry-After`, capped), as are connection errors; a 500/502/504 or a timeout on a generation is not resent, because it may already have run and been billed (model listing retries every 5xx); errors returned inside a 200 response, missing choices and empty content are reported with the model and finish reason; an unknown model ID gets a hint to list models; a failed model listing backs off for 5 minutes instead of retrying on every call.
+- **Gemini requests could hang forever**: the client now has a per-request timeout (`GEMINI_REQUEST_TIMEOUT`, default 900 s).
+- **Model registry**: resolution is thread-safe (concurrent tool calls listed models several times and could read a half-built cache); the flagship pattern accepts codenames only from Gemini 4, so experimental IDs like `gemini-2.0-exp` can never become `pro`.
+
 ## [4.8.1] - 2026-10-25
 
 Repository and documentation overhaul for GitHub and PyPI, plus three installation bugs it uncovered.

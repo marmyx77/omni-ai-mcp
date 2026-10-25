@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from ...tools.registry import tool
 from ...services import client, TTS_MODELS, is_available, get_error
+from ...core.security import safe_input_path, safe_output_path, default_output_path
 
 GENDERS = ("female", "male", "neutral")
 PITCHES = ("low", "medium", "high")
@@ -151,8 +152,7 @@ def _save_preview(voice: Any, preview_path: Optional[str], stem: str) -> Optiona
     data = _get(sample, "data") if sample else None
     if not data:
         return None
-    path = preview_path or f"/tmp/{stem}_{int(time.time())}.wav"
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    path = safe_output_path(preview_path, {".wav"}) if preview_path else default_output_path(stem, ".wav")
     with open(path, "wb") as fh:
         fh.write(base64.b64decode(data) if isinstance(data, str) else bytes(data))
     return path
@@ -191,7 +191,7 @@ def build_design_request(model_id: str, description: str, display_name: str,
             "gender": {"type": "string", "enum": list(GENDERS)},
             "language_code": {"type": "string", "description": "BCP-47, e.g. 'it-IT'"},
             "model": {"type": "string", "enum": ["flash", "lite"], "default": "flash"},
-            "preview_path": {"type": "string", "description": "Where to save the WAV preview (default /tmp)"}
+            "preview_path": {"type": "string", "description": "Where to save the WAV preview, inside the workspace (default: a private temp folder, or GEMINI_OUTPUT_DIR)"}
         },
         "required": ["description"]
     },
@@ -233,11 +233,15 @@ def _wav_seconds(path: str) -> Optional[float]:
 
 def build_replication_request(model_id: str, source_path: str, consent_path: str,
                               display_name: str, store: bool) -> Dict[str, Any]:
+    checked = []
     for label, path in (("source_audio_path", source_path), ("consent_audio_path", consent_path)):
-        if not os.path.isfile(path):
-            raise ValueError(f"{label} not found: {path}")
-        if not path.lower().endswith(".wav"):
-            raise ValueError(f"{label} must be a WAV file (24 kHz mono 16-bit recommended)")
+        try:
+            checked.append(safe_input_path(path, allowed_extensions={".wav"}))
+        except ValueError as e:
+            if "unsupported file type" in str(e):
+                raise ValueError(f"{label} must be a WAV file (24 kHz mono 16-bit recommended)")
+            raise ValueError(f"{label}: {e}")
+    source_path, consent_path = checked
     seconds = _wav_seconds(source_path)
     low, high = REFERENCE_SECONDS
     if seconds is not None and not (low - 0.5) <= seconds <= (high + 0.5):

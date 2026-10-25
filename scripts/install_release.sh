@@ -84,7 +84,10 @@ echo "  after:  $INSTALLED"
 
 # --- ~/.claude.json ---------------------------------------------------------
 if [ -f "$CLAUDE_JSON" ]; then
-  cp "$CLAUDE_JSON" "$CLAUDE_JSON.bak-$(date +%Y%m%d-%H%M%S)-omni-$TAG"
+  # The file holds API keys: the backup stays owner-only
+  BACKUP="$CLAUDE_JSON.bak-$(date +%Y%m%d-%H%M%S)-omni-$TAG"
+  (umask 077 && cp "$CLAUDE_JSON" "$BACKUP")
+  chmod 600 "$BACKUP"
 fi
 VENV="$VENV" CLAUDE_JSON="$CLAUDE_JSON" "$VENV/bin/python3" - <<'PY'
 import json, os
@@ -104,7 +107,13 @@ servers["omni-ai-mcp"] = {
     "args": ["-m", "app.server"],
     "env": env,
 }
-json.dump(data, open(path, "w"), indent=2)
+# Atomic, owner-only write: the file holds API keys
+tmp = f"{path}.tmp-omni-{os.getpid()}"
+fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+with os.fdopen(fd, "w") as f:
+    json.dump(data, f, indent=2)
+os.replace(tmp, path)
+os.chmod(path, 0o600)
 print("  ~/.claude.json: mcpServers.omni-ai-mcp ->", f"{venv}/bin/python3 -m app.server",
       "| env keys:", sorted(env.keys()))
 if not env.get("GEMINI_API_KEY"):

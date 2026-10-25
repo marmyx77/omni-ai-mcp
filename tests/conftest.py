@@ -136,3 +136,15 @@ def test_files_dir(temp_sandbox):
     (test_dir / "src" / "utils.py").write_text("def util(): pass")
 
     return str(test_dir)
+
+
+@pytest.fixture(autouse=True)
+def _sandbox_covers_pytest_tmp(tmp_path_factory, monkeypatch):
+    """
+    Tools enforce GEMINI_SANDBOX_ROOT (v4.8.2). Tests create their files under
+    pytest's per-session base temp dir, so make that the default sandbox root.
+    Fixtures that need a narrower sandbox (temp_sandbox) still override it.
+    """
+    import os
+    from app.core.config import config
+    monkeypatch.setattr(config, "sandbox_root", os.path.realpath(str(tmp_path_factory.getbasetemp())))
